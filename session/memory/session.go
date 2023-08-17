@@ -3,7 +3,7 @@ package memory
 import (
 	"context"
 	"errors"
-	"github.com/jrmarcco/go-learning/web/session"
+	"github.com/jrmarcco/easy-web/session"
 	"github.com/patrickmn/go-cache"
 	"sync"
 	"time"

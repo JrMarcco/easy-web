@@ -1,7 +1,7 @@
 package tracing
 
 import (
-	"github.com/jrmarcco/go-learning/web"
+	web "github.com/jrmarcco/easy-web"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/propagation"

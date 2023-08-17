@@ -1,9 +1,9 @@
 package test
 
 import (
-	"github.com/jrmarcco/go-learning/web"
-	"github.com/jrmarcco/go-learning/web/middleware/accesslog"
-	"github.com/jrmarcco/go-learning/web/middleware/prometheus"
+	web "github.com/jrmarcco/easy-web"
+	"github.com/jrmarcco/easy-web/middleware/accesslog"
+	"github.com/jrmarcco/easy-web/middleware/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"
 	"math/rand"

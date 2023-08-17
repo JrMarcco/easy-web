@@ -1,7 +1,7 @@
 package prometheus
 
 import (
-	"github.com/jrmarcco/go-learning/web"
+	web "github.com/jrmarcco/easy-web"
 	"github.com/prometheus/client_golang/prometheus"
 	"strconv"
 	"time"

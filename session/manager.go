@@ -2,8 +2,8 @@ package session
 
 import (
 	"github.com/google/uuid"
-	"github.com/jrmarcco/go-learning/web"
-	"github.com/jrmarcco/go-learning/web/session/memory"
+	web "github.com/jrmarcco/easy-web"
+	"github.com/jrmarcco/easy-web/session/memory"
 	"time"
 )
 

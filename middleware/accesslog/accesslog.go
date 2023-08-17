@@ -2,7 +2,7 @@ package accesslog
 
 import (
 	"encoding/json"
-	"github.com/jrmarcco/go-learning/web"
+	web "github.com/jrmarcco/easy-web"
 	"log"
 )
 

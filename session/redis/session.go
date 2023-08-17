@@ -3,7 +3,7 @@ package redis
 import (
 	"context"
 	"errors"
-	"github.com/jrmarcco/go-learning/web/session"
+	"github.com/jrmarcco/easy-web/session"
 	"github.com/redis/go-redis/v9"
 	"time"
 )
