@@ -1,8 +1,17 @@
-package core
+package easy_web
 
 import "net/http"
 
 var _ Server = (*HttpSvr)(nil)
+
+type HdlFunc func(ctx *Context)
+
+type Server interface {
+	http.Handler
+
+	Start(addr string) error
+	RouteRegister(method string, path string, hdl HdlFunc)
+}
 
 type HttpSvr struct{}
 
