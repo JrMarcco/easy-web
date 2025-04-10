@@ -145,6 +145,72 @@ func TestRouteTree_AddRoute(t *testing.T) {
 	})
 }
 
+func TestRouteTree_GetRoute(t *testing.T) {
+	mockHdlFunc := func(ctx *Context) {}
+
+	tree := newRouteTree()
+	tree.addRoute(http.MethodGet, "/", mockHdlFunc)
+
+	tree.addRoute(http.MethodGet, "/v1/user", mockHdlFunc)
+
+	tree.addRoute(http.MethodGet, "/v2/mall/order", mockHdlFunc)
+	tree.addRoute(http.MethodPost, "/v2/mall/order", mockHdlFunc)
+
+	tcs := []struct {
+		name     string
+		method   string
+		path     string
+		wantRes  bool
+		wantNode *node
+	}{
+		{
+			name:    "root node",
+			method:  http.MethodGet,
+			path:    "/",
+			wantRes: true,
+			wantNode: &node{
+				typ:     nodeTypeStatic,
+				path:    "/",
+				hdlFunc: mockHdlFunc,
+			},
+		}, {
+			name:     "not found",
+			method:   http.MethodGet,
+			path:     "/user",
+			wantRes:  false,
+			wantNode: nil,
+		}, {
+			name:    "node without hdlFunc",
+			method:  http.MethodGet,
+			path:    "/v2/mall",
+			wantRes: false,
+		}, {
+			name:    "normal",
+			method:  http.MethodPost,
+			path:    "/v2/mall/order",
+			wantRes: true,
+			wantNode: &node{
+				typ:     nodeTypeStatic,
+				path:    "order",
+				hdlFunc: mockHdlFunc,
+			},
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			node, ok := tree.getRoute(tc.method, tc.path)
+			assert.Equal(t, tc.wantRes, ok)
+
+			if ok {
+				assert.Equal(t, tc.wantNode.typ, node.typ)
+				assert.Equal(t, tc.wantNode.path, node.path)
+				assert.True(t, tc.wantNode.hdlFunc.equal(node.hdlFunc))
+			}
+		})
+	}
+}
+
 func (t *routeTree) equal(other *routeTree) (string, bool) {
 	for method, tree := range t.m {
 		otherTree, ok := other.m[method]
@@ -166,6 +232,10 @@ func (n *node) equal(other *node) (string, bool) {
 		return fmt.Sprintf("path: %s != %s", n.path, other.path), false
 	}
 
+	if n.typ != other.typ {
+		return fmt.Sprintf("typ: %d != %d", n.typ, other.typ), false
+	}
+
 	if len(n.children) != len(other.children) {
 		return fmt.Sprintf("children: %d != %d", len(n.children), len(other.children)), false
 	}
@@ -175,10 +245,7 @@ func (n *node) equal(other *node) (string, bool) {
 			return "hdlFunc not found in other", false
 		}
 
-		hdlFunc := reflect.ValueOf(n.hdlFunc)
-		anotherHdlFunc := reflect.ValueOf(other.hdlFunc)
-
-		if hdlFunc != anotherHdlFunc {
+		if !n.hdlFunc.equal(other.hdlFunc) {
 			return "hdlFunc not equal", false
 		}
 	}
@@ -196,4 +263,8 @@ func (n *node) equal(other *node) (string, bool) {
 	}
 
 	return "", true
+}
+
+func (h HdlFunc) equal(other HdlFunc) bool {
+	return reflect.ValueOf(h) == reflect.ValueOf(other)
 }

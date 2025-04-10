@@ -56,6 +56,30 @@ func (t *routeTree) addRoute(method string, path string, hdlFunc HdlFunc) {
 	root.hdlFunc = hdlFunc
 }
 
+func (t *routeTree) getRoute(method string, path string) (*node, bool) {
+	root, ok := t.m[method]
+	if !ok {
+		return nil, false
+	}
+
+	path = strings.Trim(path, "/")
+	if path == "" {
+		return root, root.hdlFunc != nil
+	}
+
+	segments := strings.SplitSeq(strings.Trim(path, "/"), "/")
+	for seg := range segments {
+		child, ok := root.getChild(seg)
+		if !ok {
+			return nil, false
+		}
+
+		root = child
+	}
+
+	return root, root.hdlFunc != nil
+}
+
 const (
 	nodeTypeStatic = iota
 )
@@ -85,4 +109,16 @@ func (n *node) addChild(path string) *node {
 	n.children[path] = newNode
 
 	return newNode
+}
+
+func (n *node) getChild(path string) (*node, bool) {
+	if n.children == nil {
+		return nil, false
+	}
+
+	if child, ok := n.children[path]; ok {
+		return child, true
+	}
+
+	return nil, false
 }
