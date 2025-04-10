@@ -5,17 +5,17 @@ import (
 	"strings"
 )
 
-type routeTrees struct {
+type routeTree struct {
 	m map[string]*node
 }
 
-func newRouteTrees() *routeTrees {
-	return &routeTrees{
+func newRouteTree() *routeTree {
+	return &routeTree{
 		m: make(map[string]*node),
 	}
 }
 
-func (t *routeTrees) addRoute(method string, path string, hdlFunc HdlFunc) {
+func (t *routeTree) addRoute(method string, path string, hdlFunc HdlFunc) {
 
 	if path == "" {
 		panic("[easy_web] path is empty")

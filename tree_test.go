@@ -16,13 +16,13 @@ func TestRouteTree_AddRoute(t *testing.T) {
 		name      string
 		method    string
 		path      string
-		wantTrees *routeTrees
+		wantTrees *routeTree
 	}{
 		{
 			name:   "basic",
 			method: http.MethodGet,
 			path:   "/user/test",
-			wantTrees: &routeTrees{
+			wantTrees: &routeTree{
 				m: map[string]*node{
 					http.MethodGet: {
 						typ:  nodeTypeStatic,
@@ -49,7 +49,7 @@ func TestRouteTree_AddRoute(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			trees := newRouteTrees()
+			trees := newRouteTree()
 			trees.addRoute(tc.method, tc.path, mockHdlFunc)
 
 			msg, ok := trees.equal(tc.wantTrees)
@@ -61,7 +61,7 @@ func TestRouteTree_AddRoute(t *testing.T) {
 	}
 }
 
-func (t *routeTrees) equal(other *routeTrees) (string, bool) {
+func (t *routeTree) equal(other *routeTree) (string, bool) {
 	for method, tree := range t.m {
 		otherTree, ok := other.m[method]
 		if !ok {
