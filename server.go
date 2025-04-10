@@ -13,12 +13,20 @@ type Server interface {
 	RouteRegister(method string, path string, hdl HdlFunc)
 }
 
-type HttpSvr struct{}
+type HttpSvr struct {
+	*routeTree
+}
+
+func NewHttpSvr() *HttpSvr {
+	return &HttpSvr{
+		routeTree: newRouteTree(),
+	}
+}
 
 func (s *HttpSvr) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := &Context{
-		Req:  r,
-		Resp: w,
+		Req: r,
+		Rsp: w,
 	}
 
 	// TODO
@@ -38,29 +46,33 @@ func (s *HttpSvr) RouteRegister(method string, path string, hdl HdlFunc) {
 }
 
 func (s *HttpSvr) Get(path string, hdl HdlFunc) {
-	s.RouteRegister(http.MethodGet, path, hdl)
+	s.addRoute(http.MethodGet, path, hdl)
 }
 
 func (s *HttpSvr) Post(path string, hdl HdlFunc) {
-	s.RouteRegister(http.MethodPost, path, hdl)
+	s.addRoute(http.MethodPost, path, hdl)
 }
 
 func (s *HttpSvr) Put(path string, hdl HdlFunc) {
-	s.RouteRegister(http.MethodPut, path, hdl)
-}
-
-func (s *HttpSvr) Delete(path string, hdl HdlFunc) {
-	s.RouteRegister(http.MethodDelete, path, hdl)
+	s.addRoute(http.MethodPut, path, hdl)
 }
 
 func (s *HttpSvr) Patch(path string, hdl HdlFunc) {
-	s.RouteRegister(http.MethodPatch, path, hdl)
+	s.addRoute(http.MethodPatch, path, hdl)
+}
+
+func (s *HttpSvr) Delete(path string, hdl HdlFunc) {
+	s.addRoute(http.MethodDelete, path, hdl)
 }
 
 func (s *HttpSvr) Head(path string, hdl HdlFunc) {
-	s.RouteRegister(http.MethodHead, path, hdl)
+	s.addRoute(http.MethodHead, path, hdl)
 }
 
 func (s *HttpSvr) Options(path string, hdl HdlFunc) {
-	s.RouteRegister(http.MethodOptions, path, hdl)
+	s.addRoute(http.MethodOptions, path, hdl)
+}
+
+func (s *HttpSvr) Group(path string) *RouteGroup {
+	return newRouteGroup(s, path)
 }
