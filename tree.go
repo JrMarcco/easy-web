@@ -16,7 +16,6 @@ func newRouteTree() *routeTree {
 }
 
 func (t *routeTree) addRoute(method string, path string, hdlFunc HdlFunc) {
-
 	if path == "" {
 		panic("[easy_web] path is empty")
 	}
@@ -31,9 +30,22 @@ func (t *routeTree) addRoute(method string, path string, hdlFunc HdlFunc) {
 		t.m[method] = root
 	}
 
-	segments := strings.Split(strings.Trim(path, "/"), "/")
+	path = strings.Trim(path, "/")
+	if path == "" {
+		if root.hdlFunc != nil {
+			panic(fmt.Sprintf("[easy_web] route %s already exists", path))
+		}
 
-	for _, seg := range segments {
+		root.hdlFunc = hdlFunc
+		return
+	}
+
+	segments := strings.SplitSeq(strings.Trim(path, "/"), "/")
+	for seg := range segments {
+		if seg == "" {
+			panic("[easy_web] path contains consecutive '/'")
+		}
+
 		root = root.addChild(seg)
 	}
 

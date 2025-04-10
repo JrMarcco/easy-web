@@ -19,6 +19,20 @@ func TestRouteTree_AddRoute(t *testing.T) {
 		wantTrees *routeTree
 	}{
 		{
+			name:   "root node",
+			method: http.MethodGet,
+			path:   "/",
+			wantTrees: &routeTree{
+				m: map[string]*node{
+					http.MethodGet: {
+						typ:      nodeTypeStatic,
+						path:     "/",
+						hdlFunc:  mockHdlFunc,
+						children: nil,
+					},
+				},
+			},
+		}, {
 			name:   "basic",
 			method: http.MethodGet,
 			path:   "/user/test",
@@ -44,21 +58,91 @@ func TestRouteTree_AddRoute(t *testing.T) {
 					},
 				},
 			},
+		}, {
+			name:   "path end with sprit",
+			method: http.MethodGet,
+			path:   "/user/test/",
+			wantTrees: &routeTree{
+				m: map[string]*node{
+					http.MethodGet: {
+						typ:  nodeTypeStatic,
+						path: "/",
+						children: map[string]*node{
+							"user": {
+								typ:  nodeTypeStatic,
+								path: "user",
+								children: map[string]*node{
+									"test": {
+										typ:      nodeTypeStatic,
+										path:     "test",
+										hdlFunc:  mockHdlFunc,
+										children: nil,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}, {
+			name:   "single path",
+			method: http.MethodGet,
+			path:   "/user",
+			wantTrees: &routeTree{
+				m: map[string]*node{
+					http.MethodGet: {
+						typ:  nodeTypeStatic,
+						path: "/",
+						children: map[string]*node{
+							"user": {
+								typ:      nodeTypeStatic,
+								path:     "user",
+								hdlFunc:  mockHdlFunc,
+								children: nil,
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			trees := newRouteTree()
-			trees.addRoute(tc.method, tc.path, mockHdlFunc)
+			tree := newRouteTree()
+			tree.addRoute(tc.method, tc.path, mockHdlFunc)
 
-			msg, ok := trees.equal(tc.wantTrees)
+			msg, ok := tree.equal(tc.wantTrees)
 			if !ok {
 				t.Log(msg)
 			}
 			assert.True(t, ok)
 		})
 	}
+
+	// invalid path
+	tree := newRouteTree()
+	assert.Panics(t, func() {
+		tree.addRoute(http.MethodGet, "", mockHdlFunc)
+	})
+	assert.Panics(t, func() {
+		tree.addRoute(http.MethodGet, "user", mockHdlFunc)
+	})
+	assert.Panics(t, func() {
+		tree.addRoute(http.MethodGet, "user//test", mockHdlFunc)
+	})
+
+	// duplicate register root path
+	tree.addRoute(http.MethodGet, "/", mockHdlFunc)
+	assert.Panics(t, func() {
+		tree.addRoute(http.MethodGet, "/", mockHdlFunc)
+	})
+
+	// duplicate register path
+	tree.addRoute(http.MethodGet, "/user/test", mockHdlFunc)
+	assert.Panics(t, func() {
+		tree.addRoute(http.MethodGet, "/user/test", mockHdlFunc)
+	})
 }
 
 func (t *routeTree) equal(other *routeTree) (string, bool) {
