@@ -69,18 +69,6 @@ func (t *routeTree) getRoute(method string, path string) (*node, bool) {
 
 	segments := strings.SplitSeq(path, "/")
 	for seg := range segments {
-		if root.typ == special {
-			if root.wildcardNode != nil {
-				root = root.wildcardNode
-				continue
-			}
-
-			if root.paramNode != nil {
-				root = root.paramNode
-				continue
-			}
-		}
-
 		child, ok := root.getChild(seg)
 		if !ok {
 			return nil, false
@@ -163,7 +151,7 @@ func (n *node) addParamNode(path string) *node {
 
 func (n *node) getChild(path string) (*node, bool) {
 	if n.children == nil {
-		return nil, false
+		return n.getSpecialChild()
 	}
 
 	if child, ok := n.children[path]; ok {
@@ -171,4 +159,16 @@ func (n *node) getChild(path string) (*node, bool) {
 	}
 
 	return nil, false
+}
+
+func (n *node) getSpecialChild() (*node, bool) {
+	if n.typ != special {
+		return nil, false
+	}
+
+	if n.wildcardNode != nil {
+		return n.wildcardNode, true
+	}
+
+	return n.paramNode, true
 }
