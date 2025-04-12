@@ -283,6 +283,7 @@ func TestRouteTree_getRoute(t *testing.T) {
 	tree.addRoute(http.MethodGet, "/v2/mall/order", mockHdlFunc)
 	tree.addRoute(http.MethodGet, "/v2/mall/transaction", mockHdlFunc)
 	tree.addRoute(http.MethodGet, "/v2/mall/transaction/:id", mockHdlFunc)
+	tree.addRoute(http.MethodGet, "/v2/mall/transaction/:id/customer/:name", mockHdlFunc)
 
 	tree.addRoute(http.MethodPost, "/v2/mall/order", mockHdlFunc)
 	tree.addRoute(http.MethodPost, "/v2/mall/transaction", mockHdlFunc)
@@ -336,6 +337,18 @@ func TestRouteTree_getRoute(t *testing.T) {
 				matched: true,
 				hdlFunc: mockHdlFunc,
 				params:  map[string]string{"id": "123"},
+			},
+		}, {
+			name:   "multiple param nodes",
+			method: http.MethodGet,
+			path:   "/v2/mall/transaction/123/customer/tom",
+			wantInfo: matchInfo{
+				matched: true,
+				hdlFunc: mockHdlFunc,
+				params: map[string]string{
+					"id":   "123",
+					"name": "tom",
+				},
 			},
 		},
 	}

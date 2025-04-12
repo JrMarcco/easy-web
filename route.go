@@ -151,6 +151,10 @@ func (n *node) addChild(path string) *node {
 }
 
 func (n *node) addWildcardNode() *node {
+	if n.wildcardNode != nil {
+		return n.wildcardNode
+	}
+
 	if n.paramNode != nil {
 		panic("[easy_web] can not register wildcard node and param node at the same time")
 	}
@@ -161,6 +165,10 @@ func (n *node) addWildcardNode() *node {
 }
 
 func (n *node) addParamNode(path string) *node {
+	if n.paramNode != nil {
+		return n.paramNode
+	}
+
 	if n.wildcardNode != nil {
 		panic("[easy_web] can not register wildcard node and param node at the same time")
 	}
