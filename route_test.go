@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRouteTree_AddRoute(t *testing.T) {
+func TestRouteTree_addRoute(t *testing.T) {
 	mockHdlFunc := func(ctx *Context) {}
 
 	tcs := []struct {
@@ -25,7 +25,7 @@ func TestRouteTree_AddRoute(t *testing.T) {
 			wantTrees: &routeTree{
 				m: map[string]*node{
 					http.MethodGet: {
-						typ:      nodeTypeStatic,
+						typ:      static,
 						path:     "/",
 						hdlFunc:  mockHdlFunc,
 						children: nil,
@@ -39,15 +39,15 @@ func TestRouteTree_AddRoute(t *testing.T) {
 			wantTrees: &routeTree{
 				m: map[string]*node{
 					http.MethodGet: {
-						typ:  nodeTypeStatic,
+						typ:  static,
 						path: "/",
 						children: map[string]*node{
 							"user": {
-								typ:  nodeTypeStatic,
+								typ:  static,
 								path: "user",
 								children: map[string]*node{
 									"test": {
-										typ:      nodeTypeStatic,
+										typ:      static,
 										path:     "test",
 										hdlFunc:  mockHdlFunc,
 										children: nil,
@@ -65,15 +65,15 @@ func TestRouteTree_AddRoute(t *testing.T) {
 			wantTrees: &routeTree{
 				m: map[string]*node{
 					http.MethodGet: {
-						typ:  nodeTypeStatic,
+						typ:  static,
 						path: "/",
 						children: map[string]*node{
 							"user": {
-								typ:  nodeTypeStatic,
+								typ:  static,
 								path: "user",
 								children: map[string]*node{
 									"test": {
-										typ:      nodeTypeStatic,
+										typ:      static,
 										path:     "test",
 										hdlFunc:  mockHdlFunc,
 										children: nil,
@@ -91,11 +91,11 @@ func TestRouteTree_AddRoute(t *testing.T) {
 			wantTrees: &routeTree{
 				m: map[string]*node{
 					http.MethodGet: {
-						typ:  nodeTypeStatic,
+						typ:  static,
 						path: "/",
 						children: map[string]*node{
 							"user": {
-								typ:      nodeTypeStatic,
+								typ:      static,
 								path:     "user",
 								hdlFunc:  mockHdlFunc,
 								children: nil,
@@ -111,16 +111,15 @@ func TestRouteTree_AddRoute(t *testing.T) {
 			wantTrees: &routeTree{
 				m: map[string]*node{
 					http.MethodGet: {
-						typ:  nodeTypeStatic,
+						typ:  static,
 						path: "/",
 						children: map[string]*node{
 							"mall": {
-								typ:      nodeTypeStatic,
+								typ:      special,
 								path:     "mall",
 								children: map[string]*node{},
 								wildcardNode: &node{
-									typ:      nodeTypeWildcard,
-									path:     "*",
+									typ:      wildcard,
 									hdlFunc:  mockHdlFunc,
 									children: nil,
 								},
@@ -136,20 +135,19 @@ func TestRouteTree_AddRoute(t *testing.T) {
 			wantTrees: &routeTree{
 				m: map[string]*node{
 					http.MethodGet: {
-						typ:  nodeTypeStatic,
+						typ:  static,
 						path: "/",
 						children: map[string]*node{
 							"mall": {
-								typ:      nodeTypeStatic,
+								typ:      special,
 								path:     "mall",
 								children: map[string]*node{},
 								wildcardNode: &node{
-									typ:     nodeTypeWildcard,
-									path:    "*",
+									typ:     wildcard,
 									hdlFunc: mockHdlFunc,
 									children: map[string]*node{
 										"transfer": {
-											typ:      nodeTypeStatic,
+											typ:      static,
 											path:     "transfer",
 											hdlFunc:  mockHdlFunc,
 											children: nil,
@@ -168,18 +166,18 @@ func TestRouteTree_AddRoute(t *testing.T) {
 			wantTrees: &routeTree{
 				m: map[string]*node{
 					http.MethodGet: {
-						typ:  nodeTypeStatic,
+						typ:  static,
 						path: "/",
 						children: map[string]*node{
 							"mall": {
-								typ:  nodeTypeStatic,
+								typ:  static,
 								path: "mall",
 								children: map[string]*node{
 									"order": {
-										typ:  nodeTypeStatic,
+										typ:  special,
 										path: "order",
 										paramNode: &node{
-											typ:      nodeTypeParam,
+											typ:      param,
 											path:     ":id",
 											hdlFunc:  mockHdlFunc,
 											children: nil,
@@ -198,22 +196,22 @@ func TestRouteTree_AddRoute(t *testing.T) {
 			wantTrees: &routeTree{
 				m: map[string]*node{
 					http.MethodGet: {
-						typ:  nodeTypeStatic,
+						typ:  static,
 						path: "/",
 						children: map[string]*node{
 							"mall": {
-								typ:  nodeTypeStatic,
+								typ:  static,
 								path: "mall",
 								children: map[string]*node{
 									"order": {
-										typ:  nodeTypeStatic,
+										typ:  special,
 										path: "order",
 										paramNode: &node{
-											typ:  nodeTypeParam,
+											typ:  param,
 											path: ":id",
 											children: map[string]*node{
 												"transfer": {
-													typ:      nodeTypeStatic,
+													typ:      static,
 													path:     "transfer",
 													hdlFunc:  mockHdlFunc,
 													children: nil,
@@ -274,7 +272,7 @@ func TestRouteTree_AddRoute(t *testing.T) {
 	})
 }
 
-func TestRouteTree_GetRoute(t *testing.T) {
+func TestRouteTree_getRoute(t *testing.T) {
 	mockHdlFunc := func(ctx *Context) {}
 
 	tree := newRouteTree()
@@ -283,10 +281,12 @@ func TestRouteTree_GetRoute(t *testing.T) {
 	tree.addRoute(http.MethodGet, "/v1/user", mockHdlFunc)
 
 	tree.addRoute(http.MethodGet, "/v2/mall/order", mockHdlFunc)
-	tree.addRoute(http.MethodGet, "/v2/mall/order/:id", mockHdlFunc)
+	tree.addRoute(http.MethodGet, "/v2/mall/transaction", mockHdlFunc)
+	tree.addRoute(http.MethodGet, "/v2/mall/transaction/:id", mockHdlFunc)
 
 	tree.addRoute(http.MethodPost, "/v2/mall/order", mockHdlFunc)
-	tree.addRoute(http.MethodPost, "/v2/mall/order/*", mockHdlFunc)
+	tree.addRoute(http.MethodPost, "/v2/mall/transaction", mockHdlFunc)
+	tree.addRoute(http.MethodPost, "/v2/mall/transaction/*", mockHdlFunc)
 
 	tcs := []struct {
 		name     string
@@ -301,7 +301,7 @@ func TestRouteTree_GetRoute(t *testing.T) {
 			path:    "/",
 			wantRes: true,
 			wantNode: &node{
-				typ:     nodeTypeStatic,
+				typ:     static,
 				path:    "/",
 				hdlFunc: mockHdlFunc,
 			},
@@ -322,8 +322,27 @@ func TestRouteTree_GetRoute(t *testing.T) {
 			path:    "/v2/mall/order",
 			wantRes: true,
 			wantNode: &node{
-				typ:     nodeTypeStatic,
+				typ:     static,
 				path:    "order",
+				hdlFunc: mockHdlFunc,
+			},
+		}, {
+			name:    "wildcard node",
+			method:  http.MethodPost,
+			path:    "/v2/mall/transaction/something",
+			wantRes: true,
+			wantNode: &node{
+				typ:     wildcard,
+				hdlFunc: mockHdlFunc,
+			},
+		}, {
+			name:    "param node",
+			method:  http.MethodGet,
+			path:    "/v2/mall/transaction/123",
+			wantRes: true,
+			wantNode: &node{
+				typ:     param,
+				path:    ":id",
 				hdlFunc: mockHdlFunc,
 			},
 		},

@@ -40,7 +40,7 @@ func (t *routeTree) addRoute(method string, path string, hdlFunc HdlFunc) {
 		return
 	}
 
-	segments := strings.SplitSeq(strings.Trim(path, "/"), "/")
+	segments := strings.SplitSeq(path, "/")
 	for seg := range segments {
 		if seg == "" {
 			panic("[easy_web] path contains consecutive '/'")
@@ -67,8 +67,20 @@ func (t *routeTree) getRoute(method string, path string) (*node, bool) {
 		return root, root.hdlFunc != nil
 	}
 
-	segments := strings.SplitSeq(strings.Trim(path, "/"), "/")
+	segments := strings.SplitSeq(path, "/")
 	for seg := range segments {
+		if root.typ == special {
+			if root.wildcardNode != nil {
+				root = root.wildcardNode
+				continue
+			}
+
+			if root.paramNode != nil {
+				root = root.paramNode
+				continue
+			}
+		}
+
 		child, ok := root.getChild(seg)
 		if !ok {
 			return nil, false
@@ -81,13 +93,16 @@ func (t *routeTree) getRoute(method string, path string) (*node, bool) {
 }
 
 const (
-	nodeTypeStatic   = iota // static route node, e.g. /mall/order
-	nodeTypeWildcard        // wildcard route node, e.g. /mall/*
-	nodeTypeParam           // param route node, e.g. /mall/order/:id
+	static   = iota // static route node, e.g. /mall/order
+	special         // have wildcard or param node, e.g. /mall/* or /mall/:id
+	wildcard        // wildcard route node, e.g. /mall/*
+	param           // param route node, e.g. /mall/order/:id
 )
 
+type nodeType int8
+
 type node struct {
-	typ          int8
+	typ          nodeType
 	path         string
 	children     map[string]*node
 	wildcardNode *node
@@ -117,10 +132,9 @@ func (n *node) addChild(path string) *node {
 	// create new node
 	newNode := &node{
 		path: path,
-		typ:  nodeTypeStatic,
+		typ:  static,
 	}
 	n.children[path] = newNode
-
 	return newNode
 }
 
@@ -129,11 +143,8 @@ func (n *node) addWildcardNode() *node {
 		panic("[easy_web] can not register wildcard node and param node at the same time")
 	}
 
-	n.wildcardNode = &node{
-		path: "*",
-		typ:  nodeTypeWildcard,
-	}
-
+	n.typ = special
+	n.wildcardNode = &node{typ: wildcard}
 	return n.wildcardNode
 }
 
@@ -142,11 +153,11 @@ func (n *node) addParamNode(path string) *node {
 		panic("[easy_web] can not register wildcard node and param node at the same time")
 	}
 
+	n.typ = special
 	n.paramNode = &node{
 		path: path,
-		typ:  nodeTypeParam,
+		typ:  param,
 	}
-
 	return n.paramNode
 }
 
