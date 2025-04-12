@@ -4,15 +4,24 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"sync"
 )
 
 type routeTree struct {
-	m map[string]*node
+	m    map[string]*node
+	pool sync.Pool
 }
 
 func newRouteTree() *routeTree {
 	return &routeTree{
 		m: make(map[string]*node),
+		pool: sync.Pool{
+			New: func() any {
+				return &matchInfo{
+					params: make(map[string]string),
+				}
+			},
+		},
 	}
 }
 
@@ -70,60 +79,72 @@ type matchInfo struct {
 	params  map[string]string
 }
 
-func (t *routeTree) getRoute(method string, path string) matchInfo {
+func (t *routeTree) getRoute(method string, path string) *matchInfo {
+	info := t.pool.Get().(*matchInfo)
+	// Reset the matchInfo before use
+	info.matched = false
+	info.hdlFunc = nil
+	for k := range info.params {
+		delete(info.params, k)
+	}
+
 	root, ok := t.m[method]
 	if !ok {
-		return matchInfo{matched: false}
+		return info
 	}
 
 	path = strings.Trim(path, "/")
 	if path == "" {
-		return matchInfo{
-			matched: root.hdlFunc != nil,
-			hdlFunc: root.hdlFunc,
-		}
+		info.matched = root.hdlFunc != nil
+		info.hdlFunc = root.hdlFunc
+		return info
 	}
 
-	var params map[string]string
-
 	segments := strings.SplitSeq(path, "/")
+	isWildcardParent := false
 	for seg := range segments {
 		// check regular expression node first
 		if root.reNode != nil {
 			reNode := root.reNode
 			if reNode.hdlFunc == nil || reNode.re == nil {
-				return matchInfo{matched: false}
+				return info
 			}
 
 			matched := reNode.re.MatchString(seg)
-			return matchInfo{
-				matched: matched,
-				hdlFunc: reNode.hdlFunc,
-			}
+			info.matched = matched
+			info.hdlFunc = reNode.hdlFunc
+			return info
 		}
 
 		child, ok := root.getChild(seg)
 		if !ok {
-			return matchInfo{matched: false}
+			if isWildcardParent {
+				continue
+			}
+			return info
 		}
 
 		// cache path params
 		if child.typ == param {
-			if params == nil {
-				params = make(map[string]string)
-			}
-
-			params[child.path[1:]] = seg
+			info.params[child.path[1:]] = seg
 		}
 
+		if child.typ == wildcard {
+			isWildcardParent = true
+		} else {
+			isWildcardParent = false
+		}
 		root = child
 	}
 
-	return matchInfo{
-		matched: root.hdlFunc != nil,
-		hdlFunc: root.hdlFunc,
-		params:  params,
-	}
+	info.matched = root.hdlFunc != nil
+	info.hdlFunc = root.hdlFunc
+	return info
+}
+
+// putMatchInfo returns a matchInfo to the pool
+func (t *routeTree) putMatchInfo(info *matchInfo) {
+	t.pool.Put(info)
 }
 
 const (
@@ -219,15 +240,11 @@ func (n *node) addParamNode(path string) *node {
 }
 
 func (n *node) getChild(path string) (*node, bool) {
-	if n.children == nil {
-		return n.getSpecialChild()
-	}
-
-	if child, ok := n.children[path]; ok {
+	child, ok := n.children[path]
+	if ok {
 		return child, true
 	}
-
-	return nil, false
+	return n.getSpecialChild()
 }
 
 func (n *node) getSpecialChild() (*node, bool) {
