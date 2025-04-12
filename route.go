@@ -56,28 +56,52 @@ func (t *routeTree) addRoute(method string, path string, hdlFunc HdlFunc) {
 	root.hdlFunc = hdlFunc
 }
 
-func (t *routeTree) getRoute(method string, path string) (*node, bool) {
+type matchInfo struct {
+	matched bool
+	hdlFunc HdlFunc
+	params  map[string]string
+}
+
+func (t *routeTree) getRoute(method string, path string) matchInfo {
 	root, ok := t.m[method]
 	if !ok {
-		return nil, false
+		return matchInfo{matched: false}
 	}
 
 	path = strings.Trim(path, "/")
 	if path == "" {
-		return root, root.hdlFunc != nil
+		return matchInfo{
+			matched: root.hdlFunc != nil,
+			hdlFunc: root.hdlFunc,
+		}
 	}
+
+	var params map[string]string
 
 	segments := strings.SplitSeq(path, "/")
 	for seg := range segments {
 		child, ok := root.getChild(seg)
 		if !ok {
-			return nil, false
+			return matchInfo{matched: false}
+		}
+
+		// cache path params
+		if child.typ == param {
+			if params == nil {
+				params = make(map[string]string)
+			}
+
+			params[child.path[1:]] = seg
 		}
 
 		root = child
 	}
 
-	return root, root.hdlFunc != nil
+	return matchInfo{
+		matched: root.hdlFunc != nil,
+		hdlFunc: root.hdlFunc,
+		params:  params,
+	}
 }
 
 const (

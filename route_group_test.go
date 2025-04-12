@@ -12,8 +12,7 @@ func TestRouteGroup_Get(t *testing.T) {
 	rg := svr.Group("/api")
 	rg.Get("/user", func(ctx *Context) {})
 
-	route, ok := svr.getRoute(http.MethodGet, "/api/user")
-	assert.True(t, ok)
-	assert.NotNil(t, route.hdlFunc)
-	assert.Equal(t, "user", route.path)
+	mi := svr.getRoute(http.MethodGet, "/api/user")
+	assert.True(t, mi.matched)
+	assert.NotNil(t, mi.hdlFunc)
 }

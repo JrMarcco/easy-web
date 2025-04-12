@@ -292,71 +292,61 @@ func TestRouteTree_getRoute(t *testing.T) {
 		name     string
 		method   string
 		path     string
-		wantRes  bool
-		wantNode *node
+		wantInfo matchInfo
 	}{
 		{
-			name:    "root node",
-			method:  http.MethodGet,
-			path:    "/",
-			wantRes: true,
-			wantNode: &node{
-				typ:     static,
-				path:    "/",
+			name:   "root node",
+			method: http.MethodGet,
+			path:   "/",
+			wantInfo: matchInfo{
+				matched: true,
 				hdlFunc: mockHdlFunc,
 			},
 		}, {
 			name:     "not found",
 			method:   http.MethodGet,
 			path:     "/user",
-			wantRes:  false,
-			wantNode: nil,
+			wantInfo: matchInfo{matched: false},
 		}, {
-			name:    "node without hdlFunc",
-			method:  http.MethodGet,
-			path:    "/v2/mall",
-			wantRes: false,
+			name:     "node without hdlFunc",
+			method:   http.MethodGet,
+			path:     "/v2/mall",
+			wantInfo: matchInfo{matched: false},
 		}, {
-			name:    "normal",
-			method:  http.MethodPost,
-			path:    "/v2/mall/order",
-			wantRes: true,
-			wantNode: &node{
-				typ:     static,
-				path:    "order",
+			name:   "normal",
+			method: http.MethodPost,
+			path:   "/v2/mall/order",
+			wantInfo: matchInfo{
+				matched: true,
 				hdlFunc: mockHdlFunc,
 			},
 		}, {
-			name:    "wildcard node",
-			method:  http.MethodPost,
-			path:    "/v2/mall/transaction/something",
-			wantRes: true,
-			wantNode: &node{
-				typ:     wildcard,
+			name:   "wildcard node",
+			method: http.MethodPost,
+			path:   "/v2/mall/transaction/something",
+			wantInfo: matchInfo{
+				matched: true,
 				hdlFunc: mockHdlFunc,
 			},
 		}, {
-			name:    "param node",
-			method:  http.MethodGet,
-			path:    "/v2/mall/transaction/123",
-			wantRes: true,
-			wantNode: &node{
-				typ:     param,
-				path:    ":id",
+			name:   "param node",
+			method: http.MethodGet,
+			path:   "/v2/mall/transaction/123",
+			wantInfo: matchInfo{
+				matched: true,
 				hdlFunc: mockHdlFunc,
+				params:  map[string]string{"id": "123"},
 			},
 		},
 	}
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			node, ok := tree.getRoute(tc.method, tc.path)
-			assert.Equal(t, tc.wantRes, ok)
+			mi := tree.getRoute(tc.method, tc.path)
+			assert.Equal(t, tc.wantInfo.matched, mi.matched)
 
-			if ok {
-				assert.Equal(t, tc.wantNode.typ, node.typ)
-				assert.Equal(t, tc.wantNode.path, node.path)
-				assert.True(t, tc.wantNode.hdlFunc.equal(node.hdlFunc))
+			if mi.matched {
+				assert.True(t, tc.wantInfo.hdlFunc.equal(mi.hdlFunc))
 			}
 		})
 	}
