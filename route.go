@@ -2,6 +2,7 @@ package easy_web
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 )
 
@@ -46,6 +47,13 @@ func (t *routeTree) addRoute(method string, path string, hdlFunc HdlFunc) {
 			panic("[easy_web] path contains consecutive '/'")
 		}
 
+		if strings.HasPrefix(seg, "re:") {
+			// regular expression node
+			reNode := root.addRegChild(seg, hdlFunc)
+			root.reNode = reNode
+			return
+		}
+
 		root = root.addChild(seg)
 	}
 
@@ -80,6 +88,20 @@ func (t *routeTree) getRoute(method string, path string) matchInfo {
 
 	segments := strings.SplitSeq(path, "/")
 	for seg := range segments {
+		// check regular expression node first
+		if root.reNode != nil {
+			reNode := root.reNode
+			if reNode.hdlFunc == nil || reNode.re == nil {
+				return matchInfo{matched: false}
+			}
+
+			matched := reNode.re.MatchString(seg)
+			return matchInfo{
+				matched: matched,
+				hdlFunc: reNode.hdlFunc,
+			}
+		}
+
 		child, ok := root.getChild(seg)
 		if !ok {
 			return matchInfo{matched: false}
@@ -108,7 +130,7 @@ const (
 	static   = iota // static route node, e.g. /mall/order
 	special         // have wildcard or param node, e.g. /mall/* or /mall/:id
 	wildcard        // wildcard route node, e.g. /mall/*
-	param           // param route node, e.g. /mall/order/:id
+	param           // param route node, must be last one node in path, e.g. /mall/order/:id
 )
 
 type nodeType int8
@@ -120,7 +142,22 @@ type node struct {
 	wildcardNode *node
 	paramNode    *node
 
+	reNode *reNode
+
 	hdlFunc HdlFunc
+}
+
+type reNode struct {
+	re      *regexp.Regexp
+	hdlFunc HdlFunc
+}
+
+func (n *node) addRegChild(pattern string, hdlFunc HdlFunc) *reNode {
+	re := regexp.MustCompile(pattern[3:])
+	return &reNode{
+		re:      re,
+		hdlFunc: hdlFunc,
+	}
 }
 
 func (n *node) addChild(path string) *node {

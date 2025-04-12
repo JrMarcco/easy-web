@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"regexp"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -225,6 +226,34 @@ func TestRouteTree_addRoute(t *testing.T) {
 					},
 				},
 			},
+		}, {
+			name:   "regular expression node",
+			method: http.MethodGet,
+			path:   `/mall/order/re:^\d+$`,
+			wantTrees: &routeTree{
+				m: map[string]*node{
+					http.MethodGet: {
+						typ:  static,
+						path: "/",
+						children: map[string]*node{
+							"mall": {
+								typ:  static,
+								path: "mall",
+								children: map[string]*node{
+									"order": {
+										typ:  static,
+										path: "order",
+										reNode: &reNode{
+											re:      regexp.MustCompile(`^\d+$`),
+											hdlFunc: mockHdlFunc,
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 
@@ -289,6 +318,9 @@ func TestRouteTree_getRoute(t *testing.T) {
 	tree.addRoute(http.MethodPost, "/v2/mall/transaction", mockHdlFunc)
 	tree.addRoute(http.MethodPost, "/v2/mall/transaction/*", mockHdlFunc)
 
+	tree.addRoute(http.MethodGet, "/v3/mall/oreder/re:^\\d+$", mockHdlFunc)
+	tree.addRoute(http.MethodGet, "/v3/email/re:^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", mockHdlFunc)
+
 	tcs := []struct {
 		name     string
 		method   string
@@ -349,6 +381,36 @@ func TestRouteTree_getRoute(t *testing.T) {
 					"id":   "123",
 					"name": "tom",
 				},
+			},
+		}, {
+			name:   "regular exp node matched",
+			method: http.MethodGet,
+			path:   "/v3/mall/oreder/1234",
+			wantInfo: matchInfo{
+				matched: true,
+				hdlFunc: mockHdlFunc,
+			},
+		}, {
+			name:   "regular exp node unmatched",
+			method: http.MethodGet,
+			path:   "/v3/mall/oreder/abcd",
+			wantInfo: matchInfo{
+				matched: false,
+			},
+		}, {
+			name:   "complex regular exp node matched",
+			method: http.MethodGet,
+			path:   "/v3/email/example@gmail.com",
+			wantInfo: matchInfo{
+				matched: true,
+				hdlFunc: mockHdlFunc,
+			},
+		}, {
+			name:   "complex regular exp node unmatched",
+			method: http.MethodGet,
+			path:   "/v3/email/example@gmail",
+			wantInfo: matchInfo{
+				matched: false,
 			},
 		},
 	}
