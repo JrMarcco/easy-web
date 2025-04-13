@@ -81,12 +81,6 @@ type matchInfo struct {
 
 func (t *routeTree) getRoute(method string, path string) *matchInfo {
 	info := t.pool.Get().(*matchInfo)
-	// Reset the matchInfo before use
-	info.matched = false
-	info.hdlFunc = nil
-	for k := range info.params {
-		delete(info.params, k)
-	}
 
 	root, ok := t.m[method]
 	if !ok {
@@ -144,6 +138,14 @@ func (t *routeTree) getRoute(method string, path string) *matchInfo {
 
 // putMatchInfo returns a matchInfo to the pool
 func (t *routeTree) putMatchInfo(info *matchInfo) {
+	// Reset the matchInfo before put back to pool
+	info.matched = false
+	info.hdlFunc = nil
+
+	for k := range info.params {
+		delete(info.params, k)
+	}
+
 	t.pool.Put(info)
 }
 
