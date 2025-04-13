@@ -116,10 +116,10 @@ func TestRouteTree_addRoute(t *testing.T) {
 						path: "/",
 						children: map[string]*node{
 							"mall": {
-								typ:      special,
+								typ:      static,
 								path:     "mall",
 								children: map[string]*node{},
-								wildcardNode: &node{
+								wildcardN: &node{
 									typ:      wildcard,
 									hdlFunc:  mockHdlFunc,
 									children: nil,
@@ -140,10 +140,10 @@ func TestRouteTree_addRoute(t *testing.T) {
 						path: "/",
 						children: map[string]*node{
 							"mall": {
-								typ:      special,
+								typ:      static,
 								path:     "mall",
 								children: map[string]*node{},
-								wildcardNode: &node{
+								wildcardN: &node{
 									typ:     wildcard,
 									hdlFunc: mockHdlFunc,
 									children: map[string]*node{
@@ -175,9 +175,9 @@ func TestRouteTree_addRoute(t *testing.T) {
 								path: "mall",
 								children: map[string]*node{
 									"order": {
-										typ:  special,
+										typ:  static,
 										path: "order",
-										paramNode: &node{
+										paramN: &node{
 											typ:      param,
 											path:     ":id",
 											hdlFunc:  mockHdlFunc,
@@ -205,9 +205,9 @@ func TestRouteTree_addRoute(t *testing.T) {
 								path: "mall",
 								children: map[string]*node{
 									"order": {
-										typ:  special,
+										typ:  static,
 										path: "order",
-										paramNode: &node{
+										paramN: &node{
 											typ:  param,
 											path: ":id",
 											children: map[string]*node{
@@ -243,7 +243,8 @@ func TestRouteTree_addRoute(t *testing.T) {
 									"order": {
 										typ:  static,
 										path: "order",
-										reNode: &reNode{
+										regexpN: &node{
+											typ:     reg,
 											re:      regexp.MustCompile(`^\d+$`),
 											hdlFunc: mockHdlFunc,
 										},
@@ -294,10 +295,28 @@ func TestRouteTree_addRoute(t *testing.T) {
 		tree.addRoute(http.MethodGet, "/user/test", mockHdlFunc)
 	})
 
-	// register wildcard and param node at the same time
 	tree.addRoute(http.MethodGet, "/mall/order/*", mockHdlFunc)
+	// register wildcard and param node at the same time
 	assert.Panics(t, func() {
 		tree.addRoute(http.MethodGet, "/mall/order/:id", mockHdlFunc)
+	})
+	// register wildcard and regexp node at the same time
+	assert.Panics(t, func() {
+		tree.addRoute(http.MethodGet, "/mall/order/re:^\\d+$", mockHdlFunc)
+	})
+
+	// duplicate registered param node
+	tree.addRoute(http.MethodGet, "/mall/goods/:id", mockHdlFunc)
+	tree.addRoute(http.MethodGet, "/mall/goods/:id/info", mockHdlFunc)
+	assert.Panics(t, func() {
+		tree.addRoute(http.MethodGet, "/mall/goods/:name", mockHdlFunc)
+	})
+
+	// duplicate registered regex node
+	tree.addRoute(http.MethodGet, "/mall/items/re:^\\d+$", mockHdlFunc)
+	tree.addRoute(http.MethodGet, "/mall/items/re:^\\d+$/details", mockHdlFunc)
+	assert.Panics(t, func() {
+		tree.addRoute(http.MethodGet, "/mall/items/re:^\\w+$", mockHdlFunc)
 	})
 }
 
@@ -326,64 +345,64 @@ func TestRouteTree_getRoute(t *testing.T) {
 		name     string
 		method   string
 		path     string
-		wantInfo *matchInfo
+		wantInfo *matched
 	}{
 		{
 			name:   "root node",
 			method: http.MethodGet,
 			path:   "/",
-			wantInfo: &matchInfo{
-				matched: true,
+			wantInfo: &matched{
+				ok:      true,
 				hdlFunc: mockHdlFunc,
 			},
 		}, {
 			name:     "not found",
 			method:   http.MethodGet,
 			path:     "/user",
-			wantInfo: &matchInfo{matched: false},
+			wantInfo: &matched{ok: false},
 		}, {
 			name:     "node without hdlFunc",
 			method:   http.MethodGet,
 			path:     "/v2/mall",
-			wantInfo: &matchInfo{matched: false},
+			wantInfo: &matched{ok: false},
 		}, {
 			name:   "normal",
 			method: http.MethodPost,
 			path:   "/v2/mall/order",
-			wantInfo: &matchInfo{
-				matched: true,
+			wantInfo: &matched{
+				ok:      true,
 				hdlFunc: mockHdlFunc,
 			},
 		}, {
 			name:   "wildcard node",
 			method: http.MethodPost,
 			path:   "/v2/mall/transaction/something",
-			wantInfo: &matchInfo{
-				matched: true,
+			wantInfo: &matched{
+				ok:      true,
 				hdlFunc: mockHdlFunc,
 			},
 		}, {
 			name:   "wildcard node multisegment matched",
 			method: http.MethodPost,
 			path:   "/v2/mall/transaction/a/b/c",
-			wantInfo: &matchInfo{
-				matched: true,
+			wantInfo: &matched{
+				ok:      true,
 				hdlFunc: mockHdlFunc,
 			},
 		}, {
 			name:   "wildcard node multisegment matched in middle",
 			method: http.MethodPost,
 			path:   "/v2/mall/a/b/c/goods",
-			wantInfo: &matchInfo{
-				matched: true,
+			wantInfo: &matched{
+				ok:      true,
 				hdlFunc: mockHdlFunc,
 			},
 		}, {
 			name:   "param node",
 			method: http.MethodGet,
 			path:   "/v2/mall/transaction/123",
-			wantInfo: &matchInfo{
-				matched: true,
+			wantInfo: &matched{
+				ok:      true,
 				hdlFunc: mockHdlFunc,
 				params:  map[string]string{"id": "123"},
 			},
@@ -391,8 +410,8 @@ func TestRouteTree_getRoute(t *testing.T) {
 			name:   "multiple param nodes",
 			method: http.MethodGet,
 			path:   "/v2/mall/transaction/123/customer/tom",
-			wantInfo: &matchInfo{
-				matched: true,
+			wantInfo: &matched{
+				ok:      true,
 				hdlFunc: mockHdlFunc,
 				params: map[string]string{
 					"id":   "123",
@@ -403,31 +422,31 @@ func TestRouteTree_getRoute(t *testing.T) {
 			name:   "regular exp node matched",
 			method: http.MethodGet,
 			path:   "/v3/mall/oreder/1234",
-			wantInfo: &matchInfo{
-				matched: true,
+			wantInfo: &matched{
+				ok:      true,
 				hdlFunc: mockHdlFunc,
 			},
 		}, {
 			name:   "regular exp node unmatched",
 			method: http.MethodGet,
 			path:   "/v3/mall/oreder/abcd",
-			wantInfo: &matchInfo{
-				matched: false,
+			wantInfo: &matched{
+				ok: false,
 			},
 		}, {
 			name:   "complex regular exp node matched",
 			method: http.MethodGet,
 			path:   "/v3/email/example@gmail.com",
-			wantInfo: &matchInfo{
-				matched: true,
+			wantInfo: &matched{
+				ok:      true,
 				hdlFunc: mockHdlFunc,
 			},
 		}, {
 			name:   "complex regular exp node unmatched",
 			method: http.MethodGet,
 			path:   "/v3/email/example@gmail",
-			wantInfo: &matchInfo{
-				matched: false,
+			wantInfo: &matched{
+				ok: false,
 			},
 		},
 	}
@@ -435,9 +454,9 @@ func TestRouteTree_getRoute(t *testing.T) {
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			mi := tree.getRoute(tc.method, tc.path)
-			assert.Equal(t, tc.wantInfo.matched, mi.matched)
+			assert.Equal(t, tc.wantInfo.ok, mi.ok)
 
-			if mi.matched {
+			if mi.ok {
 				assert.True(t, tc.wantInfo.hdlFunc.equal(mi.hdlFunc))
 			}
 
@@ -475,25 +494,35 @@ func (n *node) equal(other *node) (string, bool) {
 		return fmt.Sprintf("children: %d != %d", len(n.children), len(other.children)), false
 	}
 
-	if n.wildcardNode != nil {
-		if other.wildcardNode == nil {
+	if n.wildcardN != nil {
+		if other.wildcardN == nil {
 			return "wildcardNode not found in other", false
 		}
 
-		msg, ok := n.wildcardNode.equal(other.wildcardNode)
+		msg, ok := n.wildcardN.equal(other.wildcardN)
 		if !ok {
 			return msg, false
 		}
 	}
 
-	if n.paramNode != nil {
-		if other.paramNode == nil {
+	if n.paramN != nil {
+		if other.paramN == nil {
 			return "paramNode not found in other", false
 		}
 
-		msg, ok := n.paramNode.equal(other.paramNode)
+		msg, ok := n.paramN.equal(other.paramN)
 		if !ok {
 			return msg, false
+		}
+	}
+
+	if n.regexpN != nil {
+		if other.regexpN == nil {
+			return "regexpNode not found in other", false
+		}
+
+		if n.regexpN.re.String() != other.regexpN.re.String() {
+			return fmt.Sprintf("regexp: %s != %s", n.regexpN.re.String(), other.regexpN.re.String()), false
 		}
 	}
 

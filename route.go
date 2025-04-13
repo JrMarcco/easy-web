@@ -17,7 +17,7 @@ func newRouteTree() *routeTree {
 		m: make(map[string]*node),
 		pool: sync.Pool{
 			New: func() any {
-				return &matchInfo{
+				return &matched{
 					params: make(map[string]string),
 				}
 			},
@@ -56,13 +56,6 @@ func (t *routeTree) addRoute(method string, path string, hdlFunc HdlFunc) {
 			panic("[easy_web] path contains consecutive '/'")
 		}
 
-		if strings.HasPrefix(seg, "re:") {
-			// regular expression node
-			reNode := root.addRegChild(seg, hdlFunc)
-			root.reNode = reNode
-			return
-		}
-
 		root = root.addChild(seg)
 	}
 
@@ -73,54 +66,35 @@ func (t *routeTree) addRoute(method string, path string, hdlFunc HdlFunc) {
 	root.hdlFunc = hdlFunc
 }
 
-type matchInfo struct {
-	matched bool
-	hdlFunc HdlFunc
-	params  map[string]string
-}
-
-func (t *routeTree) getRoute(method string, path string) *matchInfo {
-	info := t.pool.Get().(*matchInfo)
+func (t *routeTree) getRoute(method string, path string) *matched {
+	matched := t.pool.Get().(*matched)
 
 	root, ok := t.m[method]
 	if !ok {
-		return info
+		return matched
 	}
 
 	path = strings.Trim(path, "/")
 	if path == "" {
-		info.matched = root.hdlFunc != nil
-		info.hdlFunc = root.hdlFunc
-		return info
+		matched.ok = root.hdlFunc != nil
+		matched.hdlFunc = root.hdlFunc
+		return matched
 	}
 
 	segments := strings.SplitSeq(path, "/")
 	isWildcardParent := false
 	for seg := range segments {
-		// check regular expression node first
-		if root.reNode != nil {
-			reNode := root.reNode
-			if reNode.hdlFunc == nil || reNode.re == nil {
-				return info
-			}
-
-			matched := reNode.re.MatchString(seg)
-			info.matched = matched
-			info.hdlFunc = reNode.hdlFunc
-			return info
-		}
-
 		child, ok := root.getChild(seg)
 		if !ok {
 			if isWildcardParent {
 				continue
 			}
-			return info
+			return matched
 		}
 
 		// cache path params
 		if child.typ == param {
-			info.params[child.path[1:]] = seg
+			matched.addParam(child.path[1:], seg)
 		}
 
 		if child.typ == wildcard {
@@ -131,65 +105,69 @@ func (t *routeTree) getRoute(method string, path string) *matchInfo {
 		root = child
 	}
 
-	info.matched = root.hdlFunc != nil
-	info.hdlFunc = root.hdlFunc
-	return info
+	matched.ok = root.hdlFunc != nil
+	matched.hdlFunc = root.hdlFunc
+	return matched
 }
 
 // putMatchInfo returns a matchInfo to the pool
-func (t *routeTree) putMatchInfo(info *matchInfo) {
+func (t *routeTree) putMatchInfo(matched *matched) {
 	// Reset the matchInfo before put back to pool
-	info.matched = false
-	info.hdlFunc = nil
+	matched.reset()
 
-	for k := range info.params {
-		delete(info.params, k)
+	t.pool.Put(matched)
+}
+
+type matched struct {
+	ok      bool
+	hdlFunc HdlFunc
+	params  map[string]string
+}
+
+func (m *matched) addParam(key, value string) {
+	m.params[key] = value
+}
+
+func (m *matched) reset() {
+	m.ok = false
+	m.hdlFunc = nil
+	for k := range m.params {
+		delete(m.params, k)
 	}
-
-	t.pool.Put(info)
 }
 
 const (
 	static   = iota // static route node, e.g. /mall/order
-	special         // have wildcard or param node, e.g. /mall/* or /mall/:id
 	wildcard        // wildcard route node, e.g. /mall/*
-	param           // param route node, must be last one node in path, e.g. /mall/order/:id
+	param           // param route node, e.g. /mall/order/:id
+	reg             // regular exp node, e.g. /mall/order/re:^\d+$
 )
 
 type nodeType int8
 
 type node struct {
-	typ          nodeType
-	path         string
-	children     map[string]*node
-	wildcardNode *node
-	paramNode    *node
+	typ       nodeType
+	path      string
+	children  map[string]*node
+	wildcardN *node
+	paramN    *node
+	regexpN   *node
 
-	reNode *reNode
-
-	hdlFunc HdlFunc
-}
-
-type reNode struct {
 	re      *regexp.Regexp
 	hdlFunc HdlFunc
 }
 
-func (n *node) addRegChild(pattern string, hdlFunc HdlFunc) *reNode {
-	re := regexp.MustCompile(pattern[3:])
-	return &reNode{
-		re:      re,
-		hdlFunc: hdlFunc,
-	}
-}
-
 func (n *node) addChild(path string) *node {
 	if path == "*" {
-		return n.addWildcardNode()
+		return n.addWildcardN()
 	}
 
 	if path[0] == ':' {
-		return n.addParamNode(path)
+		return n.addParamN(path)
+	}
+
+	if strings.HasPrefix(path, "re:") {
+		return n.addRegexpN(path)
 	}
 
 	if n.children == nil {
@@ -210,53 +188,73 @@ func (n *node) addChild(path string) *node {
 	return newNode
 }
 
-func (n *node) addWildcardNode() *node {
-	if n.wildcardNode != nil {
-		return n.wildcardNode
+func (n *node) addWildcardN() *node {
+	if n.wildcardN == nil {
+		if n.paramN != nil || n.regexpN != nil {
+			panic("[easy_web] can not register wildcard/param/regexp node at the same time")
+		}
+
+		n.wildcardN = &node{typ: wildcard}
 	}
 
-	if n.paramNode != nil {
-		panic("[easy_web] can not register wildcard node and param node at the same time")
-	}
-
-	n.typ = special
-	n.wildcardNode = &node{typ: wildcard}
-	return n.wildcardNode
+	return n.wildcardN
 }
 
-func (n *node) addParamNode(path string) *node {
-	if n.paramNode != nil {
-		return n.paramNode
+func (n *node) addParamN(path string) *node {
+	if n.wildcardN != nil || n.regexpN != nil {
+		panic("[easy_web] can not register wildcard/param/regexp node at the same time")
 	}
 
-	if n.wildcardNode != nil {
-		panic("[easy_web] can not register wildcard node and param node at the same time")
+	if n.paramN != nil {
+		if n.paramN.path != path {
+			panic(fmt.Sprintf("[easy_web] duplicate registered param node at %s", path))
+		}
+		return n.paramN
 	}
 
-	n.typ = special
-	n.paramNode = &node{
-		path: path,
-		typ:  param,
+	n.paramN = &node{typ: param, path: path}
+	return n.paramN
+}
+
+func (n *node) addRegexpN(path string) *node {
+	if n.wildcardN != nil || n.paramN != nil {
+		panic("[easy_web] can not register wildcard/param/regexp node at the same time")
 	}
-	return n.paramNode
+
+	re := regexp.MustCompile(path[3:])
+	if n.regexpN != nil {
+		if n.regexpN.re.String() != re.String() {
+			panic(fmt.Sprintf("[easy_web] duplicate registered regexp node at %s", path))
+		}
+		return n.regexpN
+	}
+
+	n.regexpN = &node{typ: reg, re: re}
+	return n.regexpN
 }
 
 func (n *node) getChild(path string) (*node, bool) {
+	// check regexp node first
+	if n.regexpN != nil && n.regexpN.re.MatchString(path) {
+		return n.regexpN, true
+	}
+
+	// check wildcard or param node
 	child, ok := n.children[path]
 	if ok {
 		return child, true
 	}
-	return n.getSpecialChild()
+	return n.getWildcardOrParamN()
 }
 
-func (n *node) getSpecialChild() (*node, bool) {
-	if n.typ != special {
-		return nil, false
+func (n *node) getWildcardOrParamN() (*node, bool) {
+	if n.wildcardN != nil {
+		return n.wildcardN, true
 	}
 
-	if n.wildcardNode != nil {
-		return n.wildcardNode, true
+	if n.paramN != nil {
+		return n.paramN, true
 	}
 
-	return n.paramNode, true
+	return nil, false
 }

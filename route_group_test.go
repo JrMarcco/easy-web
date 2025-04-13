@@ -13,6 +13,6 @@ func TestRouteGroup_Get(t *testing.T) {
 	rg.Get("/user", func(ctx *Context) {})
 
 	mi := svr.getRoute(http.MethodGet, "/api/user")
-	assert.True(t, mi.matched)
+	assert.True(t, mi.ok)
 	assert.NotNil(t, mi.hdlFunc)
 }
