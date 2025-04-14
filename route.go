@@ -36,7 +36,7 @@ func (t *routeTree) addRoute(method string, path string, hdlFunc HdlFunc, mwFunc
 
 	root, ok := t.m[method]
 	if !ok {
-		root = &node{path: "/"}
+		root = &node{baseRoute: "/", fullRoute: "/"}
 		t.m[method] = root
 	}
 
@@ -77,9 +77,7 @@ func (t *routeTree) getRoute(method string, path string) *matched {
 
 	path = strings.Trim(path, "/")
 	if path == "" {
-		matched.ok = root.hdlFunc != nil
-		matched.hdlFunc = root.hdlFunc
-		matched.mwChain = root.mwChain
+		matched.node = root
 		return matched
 	}
 
@@ -96,7 +94,7 @@ func (t *routeTree) getRoute(method string, path string) *matched {
 
 		// cache path params
 		if child.typ == param {
-			matched.addParam(child.path[1:], seg)
+			matched.addParam(child.baseRoute[1:], seg)
 		}
 
 		if child.typ == wildcard {
@@ -107,9 +105,7 @@ func (t *routeTree) getRoute(method string, path string) *matched {
 		root = child
 	}
 
-	matched.ok = root.hdlFunc != nil
-	matched.hdlFunc = root.hdlFunc
-	matched.mwChain = root.mwChain
+	matched.node = root
 	return matched
 }
 
@@ -132,7 +128,8 @@ type nodeType int8
 
 type node struct {
 	typ       nodeType
-	path      string
+	baseRoute string
+	fullRoute string
 	children  map[string]*node
 	wildcardN *node
 	paramN    *node
@@ -167,8 +164,9 @@ func (n *node) addChild(path string) *node {
 
 	// create new node
 	newNode := &node{
-		path: path,
-		typ:  static,
+		baseRoute: path,
+		fullRoute: n.fullRoute + "/" + path,
+		typ:       static,
 	}
 	n.children[path] = newNode
 	return newNode
@@ -180,7 +178,11 @@ func (n *node) addWildcardN() *node {
 			panic("[easy_web] can not register wildcard/param/regexp node at the same time")
 		}
 
-		n.wildcardN = &node{typ: wildcard}
+		n.wildcardN = &node{
+			typ:       wildcard,
+			baseRoute: "*",
+			fullRoute: n.fullRoute + "/*",
+		}
 	}
 
 	return n.wildcardN
@@ -192,13 +194,17 @@ func (n *node) addParamN(path string) *node {
 	}
 
 	if n.paramN != nil {
-		if n.paramN.path != path {
+		if n.paramN.baseRoute != path {
 			panic(fmt.Sprintf("[easy_web] duplicate registered param node at %s", path))
 		}
 		return n.paramN
 	}
 
-	n.paramN = &node{typ: param, path: path}
+	n.paramN = &node{
+		typ:       param,
+		baseRoute: path,
+		fullRoute: n.fullRoute + "/" + path,
+	}
 	return n.paramN
 }
 
@@ -215,7 +221,12 @@ func (n *node) addRegexpN(path string) *node {
 		return n.regexpN
 	}
 
-	n.regexpN = &node{typ: reg, re: re}
+	n.regexpN = &node{
+		typ:       reg,
+		baseRoute: path,
+		fullRoute: n.fullRoute + "/" + path,
+		re:        re,
+	}
 	return n.regexpN
 }
 
@@ -246,11 +257,8 @@ func (n *node) getWildcardOrParamN() (*node, bool) {
 }
 
 type matched struct {
-	ok     bool
+	node   *node
 	params map[string]string
-
-	hdlFunc HdlFunc
-	mwChain MwChain
 }
 
 func (m *matched) addParam(key, value string) {
@@ -258,9 +266,7 @@ func (m *matched) addParam(key, value string) {
 }
 
 func (m *matched) reset() {
-	m.ok = false
-	m.hdlFunc = nil
-	m.mwChain = nil
+	m.node = nil
 	for k := range m.params {
 		delete(m.params, k)
 	}

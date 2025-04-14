@@ -26,10 +26,11 @@ func TestRouteTree_addRoute(t *testing.T) {
 			wantTrees: &routeTree{
 				m: map[string]*node{
 					http.MethodGet: {
-						typ:      static,
-						path:     "/",
-						hdlFunc:  mockHdlFunc,
-						children: nil,
+						typ:       static,
+						baseRoute: "/",
+						fullRoute: "/",
+						hdlFunc:   mockHdlFunc,
+						children:  nil,
 					},
 				},
 			},
@@ -40,18 +41,21 @@ func TestRouteTree_addRoute(t *testing.T) {
 			wantTrees: &routeTree{
 				m: map[string]*node{
 					http.MethodGet: {
-						typ:  static,
-						path: "/",
+						typ:       static,
+						baseRoute: "/",
+						fullRoute: "/",
 						children: map[string]*node{
 							"user": {
-								typ:  static,
-								path: "user",
+								typ:       static,
+								baseRoute: "user",
+								fullRoute: "/user",
 								children: map[string]*node{
 									"test": {
-										typ:      static,
-										path:     "test",
-										hdlFunc:  mockHdlFunc,
-										children: nil,
+										typ:       static,
+										baseRoute: "test",
+										fullRoute: "/user/test",
+										hdlFunc:   mockHdlFunc,
+										children:  nil,
 									},
 								},
 							},
@@ -66,18 +70,21 @@ func TestRouteTree_addRoute(t *testing.T) {
 			wantTrees: &routeTree{
 				m: map[string]*node{
 					http.MethodGet: {
-						typ:  static,
-						path: "/",
+						typ:       static,
+						baseRoute: "/",
+						fullRoute: "/",
 						children: map[string]*node{
 							"user": {
-								typ:  static,
-								path: "user",
+								typ:       static,
+								baseRoute: "user",
+								fullRoute: "/user",
 								children: map[string]*node{
 									"test": {
-										typ:      static,
-										path:     "test",
-										hdlFunc:  mockHdlFunc,
-										children: nil,
+										typ:       static,
+										baseRoute: "test",
+										fullRoute: "/user/test",
+										hdlFunc:   mockHdlFunc,
+										children:  nil,
 									},
 								},
 							},
@@ -92,14 +99,16 @@ func TestRouteTree_addRoute(t *testing.T) {
 			wantTrees: &routeTree{
 				m: map[string]*node{
 					http.MethodGet: {
-						typ:  static,
-						path: "/",
+						typ:       static,
+						baseRoute: "/",
+						fullRoute: "/",
 						children: map[string]*node{
 							"user": {
-								typ:      static,
-								path:     "user",
-								hdlFunc:  mockHdlFunc,
-								children: nil,
+								typ:       static,
+								baseRoute: "user",
+								fullRoute: "/user",
+								hdlFunc:   mockHdlFunc,
+								children:  nil,
 							},
 						},
 					},
@@ -112,17 +121,21 @@ func TestRouteTree_addRoute(t *testing.T) {
 			wantTrees: &routeTree{
 				m: map[string]*node{
 					http.MethodGet: {
-						typ:  static,
-						path: "/",
+						typ:       static,
+						baseRoute: "/",
+						fullRoute: "/",
 						children: map[string]*node{
 							"mall": {
-								typ:      static,
-								path:     "mall",
-								children: map[string]*node{},
+								typ:       static,
+								baseRoute: "mall",
+								fullRoute: "/mall",
+								children:  map[string]*node{},
 								wildcardN: &node{
-									typ:      wildcard,
-									hdlFunc:  mockHdlFunc,
-									children: nil,
+									typ:       wildcard,
+									baseRoute: "*",
+									fullRoute: "/mall/*",
+									hdlFunc:   mockHdlFunc,
+									children:  nil,
 								},
 							},
 						},
@@ -136,22 +149,26 @@ func TestRouteTree_addRoute(t *testing.T) {
 			wantTrees: &routeTree{
 				m: map[string]*node{
 					http.MethodGet: {
-						typ:  static,
-						path: "/",
+						typ:       static,
+						baseRoute: "/",
+						fullRoute: "/",
 						children: map[string]*node{
 							"mall": {
-								typ:      static,
-								path:     "mall",
-								children: map[string]*node{},
+								typ:       static,
+								baseRoute: "mall",
+								fullRoute: "/mall",
+								children:  map[string]*node{},
 								wildcardN: &node{
-									typ:     wildcard,
-									hdlFunc: mockHdlFunc,
+									typ:       wildcard,
+									baseRoute: "*",
+									fullRoute: "/mall/*",
 									children: map[string]*node{
 										"transfer": {
-											typ:      static,
-											path:     "transfer",
-											hdlFunc:  mockHdlFunc,
-											children: nil,
+											typ:       static,
+											baseRoute: "transfer",
+											fullRoute: "/mall/*/transfer",
+											hdlFunc:   mockHdlFunc,
+											children:  nil,
 										},
 									},
 								},
@@ -167,21 +184,25 @@ func TestRouteTree_addRoute(t *testing.T) {
 			wantTrees: &routeTree{
 				m: map[string]*node{
 					http.MethodGet: {
-						typ:  static,
-						path: "/",
+						typ:       static,
+						baseRoute: "/",
+						fullRoute: "/",
 						children: map[string]*node{
 							"mall": {
-								typ:  static,
-								path: "mall",
+								typ:       static,
+								baseRoute: "mall",
+								fullRoute: "/mall",
 								children: map[string]*node{
 									"order": {
-										typ:  static,
-										path: "order",
+										typ:       static,
+										baseRoute: "order",
+										fullRoute: "/mall/order",
 										paramN: &node{
-											typ:      param,
-											path:     ":id",
-											hdlFunc:  mockHdlFunc,
-											children: nil,
+											typ:       param,
+											baseRoute: ":id",
+											fullRoute: "/mall/order/:id",
+											hdlFunc:   mockHdlFunc,
+											children:  nil,
 										},
 									},
 								},
@@ -197,25 +218,29 @@ func TestRouteTree_addRoute(t *testing.T) {
 			wantTrees: &routeTree{
 				m: map[string]*node{
 					http.MethodGet: {
-						typ:  static,
-						path: "/",
+						typ:       static,
+						baseRoute: "/",
+						fullRoute: "/",
 						children: map[string]*node{
 							"mall": {
-								typ:  static,
-								path: "mall",
+								typ:       static,
+								baseRoute: "mall",
+								fullRoute: "/mall",
 								children: map[string]*node{
 									"order": {
-										typ:  static,
-										path: "order",
+										typ:       static,
+										baseRoute: "order",
+										fullRoute: "/mall/order",
 										paramN: &node{
-											typ:  param,
-											path: ":id",
+											typ:       param,
+											baseRoute: ":id",
 											children: map[string]*node{
 												"transfer": {
-													typ:      static,
-													path:     "transfer",
-													hdlFunc:  mockHdlFunc,
-													children: nil,
+													typ:       static,
+													baseRoute: "transfer",
+													fullRoute: "/mall/order/:id/transfer",
+													hdlFunc:   mockHdlFunc,
+													children:  nil,
 												},
 											},
 										},
@@ -233,16 +258,19 @@ func TestRouteTree_addRoute(t *testing.T) {
 			wantTrees: &routeTree{
 				m: map[string]*node{
 					http.MethodGet: {
-						typ:  static,
-						path: "/",
+						typ:       static,
+						baseRoute: "/",
+						fullRoute: "/",
 						children: map[string]*node{
 							"mall": {
-								typ:  static,
-								path: "mall",
+								typ:       static,
+								baseRoute: "mall",
+								fullRoute: "/mall",
 								children: map[string]*node{
 									"order": {
-										typ:  static,
-										path: "order",
+										typ:       static,
+										baseRoute: "order",
+										fullRoute: "/mall/order",
 										regexpN: &node{
 											typ:     reg,
 											re:      regexp.MustCompile(`^\d+$`),
@@ -345,22 +373,22 @@ func TestRouteTree_addRoute_middleware(t *testing.T) {
 	wantTrees := &routeTree{
 		m: map[string]*node{
 			http.MethodGet: {
-				typ:  static,
-				path: "/",
+				typ:       static,
+				baseRoute: "/",
 				children: map[string]*node{
 					"mall": {
-						typ:  static,
-						path: "mall",
+						typ:       static,
+						baseRoute: "mall",
 						children: map[string]*node{
 							"goods": {
-								typ:  static,
-								path: "goods",
+								typ:       static,
+								baseRoute: "goods",
 								paramN: &node{
-									typ:      param,
-									path:     ":id",
-									hdlFunc:  mockHdlFunc,
-									mwChain:  MwChain{firstMockMwFunc, secondMockMwFunc},
-									children: nil,
+									typ:       param,
+									baseRoute: ":id",
+									hdlFunc:   mockHdlFunc,
+									mwChain:   MwChain{firstMockMwFunc, secondMockMwFunc},
+									children:  nil,
 								},
 							},
 						},
@@ -409,70 +437,80 @@ func TestRouteTree_getRoute(t *testing.T) {
 			method: http.MethodGet,
 			path:   "/",
 			wantInfo: &matched{
-				ok:      true,
-				hdlFunc: mockHdlFunc,
+				node: &node{
+					hdlFunc: mockHdlFunc,
+				},
 			},
 		}, {
-			name:     "not found",
-			method:   http.MethodGet,
-			path:     "/user",
-			wantInfo: &matched{ok: false},
+			name:   "not found",
+			method: http.MethodGet,
+			path:   "/user",
+			wantInfo: &matched{
+				node: nil,
+			},
 		}, {
-			name:     "node without hdlFunc",
-			method:   http.MethodGet,
-			path:     "/v2/mall",
-			wantInfo: &matched{ok: false},
+			name:   "node without hdlFunc",
+			method: http.MethodGet,
+			path:   "/v2/mall",
+			wantInfo: &matched{
+				node: nil,
+			},
 		}, {
 			name:   "normal",
 			method: http.MethodPost,
 			path:   "/v2/mall/order",
 			wantInfo: &matched{
-				ok:      true,
-				hdlFunc: mockHdlFunc,
+				node: &node{
+					hdlFunc: mockHdlFunc,
+				},
 			},
 		}, {
 			name:   "wildcard node",
 			method: http.MethodPost,
 			path:   "/v2/mall/transaction/something",
 			wantInfo: &matched{
-				ok:      true,
-				hdlFunc: mockHdlFunc,
+				node: &node{
+					hdlFunc: mockHdlFunc,
+				},
 			},
 		}, {
 			name:   "wildcard node multisegment matched",
 			method: http.MethodPost,
 			path:   "/v2/mall/transaction/a/b/c",
 			wantInfo: &matched{
-				ok:      true,
-				hdlFunc: mockHdlFunc,
+				node: &node{
+					hdlFunc: mockHdlFunc,
+				},
 			},
 		}, {
 			name:   "wildcard node multisegment matched in middle",
 			method: http.MethodPost,
 			path:   "/v2/mall/a/b/c/goods",
 			wantInfo: &matched{
-				ok:      true,
-				hdlFunc: mockHdlFunc,
+				node: &node{
+					hdlFunc: mockHdlFunc,
+				},
 			},
 		}, {
 			name:   "param node",
 			method: http.MethodGet,
 			path:   "/v2/mall/transaction/123",
 			wantInfo: &matched{
-				ok:      true,
-				hdlFunc: mockHdlFunc,
-				params:  map[string]string{"id": "123"},
+				node: &node{
+					hdlFunc: mockHdlFunc,
+				},
+				params: map[string]string{
+					"id":   "123",
+					"name": "tom",
+				},
 			},
 		}, {
 			name:   "multiple param nodes",
 			method: http.MethodGet,
 			path:   "/v2/mall/transaction/123/customer/tom",
 			wantInfo: &matched{
-				ok:      true,
-				hdlFunc: mockHdlFunc,
-				params: map[string]string{
-					"id":   "123",
-					"name": "tom",
+				node: &node{
+					hdlFunc: mockHdlFunc,
 				},
 			},
 		}, {
@@ -480,44 +518,45 @@ func TestRouteTree_getRoute(t *testing.T) {
 			method: http.MethodGet,
 			path:   "/v3/mall/oreder/1234",
 			wantInfo: &matched{
-				ok:      true,
-				hdlFunc: mockHdlFunc,
+				node: &node{
+					hdlFunc: mockHdlFunc,
+				},
 			},
 		}, {
 			name:   "regular exp node unmatched",
 			method: http.MethodGet,
 			path:   "/v3/mall/oreder/abcd",
 			wantInfo: &matched{
-				ok: false,
+				node: nil,
 			},
 		}, {
 			name:   "complex regular exp node matched",
 			method: http.MethodGet,
 			path:   "/v3/email/example@gmail.com",
 			wantInfo: &matched{
-				ok:      true,
-				hdlFunc: mockHdlFunc,
+				node: &node{
+					hdlFunc: mockHdlFunc,
+				},
 			},
 		}, {
 			name:   "complex regular exp node unmatched",
 			method: http.MethodGet,
 			path:   "/v3/email/example@gmail",
 			wantInfo: &matched{
-				ok: false,
+				node: nil,
 			},
 		},
 	}
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			mi := tree.getRoute(tc.method, tc.path)
-			assert.Equal(t, tc.wantInfo.ok, mi.ok)
+			m := tree.getRoute(tc.method, tc.path)
 
-			if mi.ok {
-				assert.True(t, tc.wantInfo.hdlFunc.equal(mi.hdlFunc))
+			if tc.wantInfo.node != nil {
+				assert.True(t, tc.wantInfo.node.hdlFunc.equal(m.node.hdlFunc))
 			}
 
-			tree.putMatchInfo(mi)
+			tree.putMatchInfo(m)
 		})
 	}
 }
@@ -539,8 +578,8 @@ func (t *routeTree) equal(other *routeTree) (string, bool) {
 }
 
 func (n *node) equal(other *node) (string, bool) {
-	if n.path != other.path {
-		return fmt.Sprintf("path: %s != %s", n.path, other.path), false
+	if n.baseRoute != other.baseRoute {
+		return fmt.Sprintf("path: %s != %s", n.baseRoute, other.baseRoute), false
 	}
 
 	if n.typ != other.typ {

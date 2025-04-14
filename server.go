@@ -64,19 +64,23 @@ func (s *HttpSvr) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // serve is the main function to serve the request
 func (s *HttpSvr) serve(ctx *Context) {
 	matched := s.getRoute(ctx.Req.Method, ctx.Req.URL.Path)
-	if !matched.ok {
+	if matched.node == nil {
 		ctx.RspJson(http.StatusNotFound, "Not Found")
 		return
 	}
 
-	hdlFunc := matched.hdlFunc
+	ctx.matchedPath = matched.node.fullRoute
+
+	hdlFunc := matched.node.hdlFunc
 	// middleware execution
-	mwChain := matched.mwChain
+	mwChain := matched.node.mwChain
 	// reverse the middleware chain
 	for i := len(mwChain) - 1; i >= 0; i-- {
 		hdlFunc = mwChain[i](hdlFunc)
 	}
+
 	// wrap the handler function
+	// flush the response after the handler function is executed
 	hdlFunc = func(next HdlFunc) HdlFunc {
 		return func(ctx *Context) {
 			next(ctx)
