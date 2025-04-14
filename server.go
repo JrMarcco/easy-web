@@ -1,6 +1,9 @@
 package easy_web
 
-import "net/http"
+import (
+	"net"
+	"net/http"
+)
 
 var _ Server = (*HttpSvr)(nil)
 
@@ -9,17 +12,34 @@ type HdlFunc func(ctx *Context)
 type Server interface {
 	http.Handler
 
-	Start(addr string) error
+	Start() error
 	RouteRegister(method string, path string, hdl HdlFunc)
 }
 
+type SvrOpt func(*HttpSvr)
+
 type HttpSvr struct {
 	*routeTree
+
+	addr string
 }
 
-func NewHttpSvr() *HttpSvr {
-	return &HttpSvr{
+func NewHttpSvr(opts ...SvrOpt) *HttpSvr {
+	svr := &HttpSvr{
 		routeTree: newRouteTree(),
+		addr:      ":8080",
+	}
+
+	for _, opt := range opts {
+		opt(svr)
+	}
+
+	return svr
+}
+
+func SvrWithAddr(addr string) SvrOpt {
+	return func(s *HttpSvr) {
+		s.addr = addr
 	}
 }
 
@@ -29,20 +49,33 @@ func (s *HttpSvr) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Rsp: w,
 	}
 
-	// TODO
 	s.serve(ctx)
 }
 
 func (s *HttpSvr) serve(ctx *Context) {
-	panic("not implemented")
+	matched := s.getRoute(ctx.Req.Method, ctx.Req.URL.Path)
+	if !matched.ok {
+		ctx.RspJson(http.StatusNotFound, "Not Found")
+		return
+	}
+
+	ctx.pathParams = matched.params
+
+	hdlFunc := matched.hdlFunc
+	hdlFunc(ctx)
 }
 
-func (s *HttpSvr) Start(addr string) error {
-	panic("not implemented")
+func (s *HttpSvr) Start() error {
+	ln, err := net.Listen("tcp", s.addr)
+	if err != nil {
+		return err
+	}
+
+	return http.Serve(ln, s)
 }
 
 func (s *HttpSvr) RouteRegister(method string, path string, hdl HdlFunc) {
-	panic("not implemented")
+	s.addRoute(method, path, hdl)
 }
 
 func (s *HttpSvr) Get(path string, hdl HdlFunc) {
