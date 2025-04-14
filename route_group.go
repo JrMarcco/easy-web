@@ -5,6 +5,8 @@ type RouteGroup struct {
 
 	basePath string
 	parent   *RouteGroup
+
+	mwChain MwChain
 }
 
 func newRouteGroup(svr *HttpSvr, path string) *RouteGroup {
@@ -25,32 +27,39 @@ func (rg *RouteGroup) Group(prefix string) *RouteGroup {
 	return newRg
 }
 
-func (rg *RouteGroup) Get(relativePath string, hdlFunc HdlFunc) {
-	rg.svr.Get(rg.getAbsPath()+relativePath, hdlFunc)
+func (rg *RouteGroup) Get(relativePath string, hdlFunc HdlFunc, mws ...MwFunc) {
+	mwChain := append(rg.getMwChain(), mws...)
+	rg.svr.Get(rg.getAbsPath()+relativePath, hdlFunc, mwChain...)
 }
 
-func (rg *RouteGroup) Post(relativePath string, hdlFunc HdlFunc) {
-	rg.svr.Post(rg.getAbsPath()+relativePath, hdlFunc)
+func (rg *RouteGroup) Post(relativePath string, hdlFunc HdlFunc, mws ...MwFunc) {
+	mwChain := append(rg.getMwChain(), mws...)
+	rg.svr.Post(rg.getAbsPath()+relativePath, hdlFunc, mwChain...)
 }
 
-func (rg *RouteGroup) Put(relativePath string, hdlFunc HdlFunc) {
-	rg.svr.Put(rg.getAbsPath()+relativePath, hdlFunc)
+func (rg *RouteGroup) Put(relativePath string, hdlFunc HdlFunc, mws ...MwFunc) {
+	mwChain := append(rg.getMwChain(), mws...)
+	rg.svr.Put(rg.getAbsPath()+relativePath, hdlFunc, mwChain...)
 }
 
-func (rg *RouteGroup) Patch(relativePath string, hdlFunc HdlFunc) {
-	rg.svr.Patch(rg.getAbsPath()+relativePath, hdlFunc)
+func (rg *RouteGroup) Patch(relativePath string, hdlFunc HdlFunc, mws ...MwFunc) {
+	mwChain := append(rg.getMwChain(), mws...)
+	rg.svr.Patch(rg.getAbsPath()+relativePath, hdlFunc, mwChain...)
 }
 
-func (rg *RouteGroup) Delete(relativePath string, hdlFunc HdlFunc) {
-	rg.svr.Delete(rg.getAbsPath()+relativePath, hdlFunc)
+func (rg *RouteGroup) Delete(relativePath string, hdlFunc HdlFunc, mws ...MwFunc) {
+	mwChain := append(rg.getMwChain(), mws...)
+	rg.svr.Delete(rg.getAbsPath()+relativePath, hdlFunc, mwChain...)
 }
 
-func (rg *RouteGroup) Head(relativePath string, hdlFunc HdlFunc) {
-	rg.svr.Head(rg.getAbsPath()+relativePath, hdlFunc)
+func (rg *RouteGroup) Head(relativePath string, hdlFunc HdlFunc, mws ...MwFunc) {
+	mwChain := append(rg.getMwChain(), mws...)
+	rg.svr.Head(rg.getAbsPath()+relativePath, hdlFunc, mwChain...)
 }
 
-func (rg *RouteGroup) Options(relativePath string, hdlFunc HdlFunc) {
-	rg.svr.Options(rg.getAbsPath()+relativePath, hdlFunc)
+func (rg *RouteGroup) Options(relativePath string, hdlFunc HdlFunc, mws ...MwFunc) {
+	mwChain := append(rg.getMwChain(), mws...)
+	rg.svr.Options(rg.getAbsPath()+relativePath, hdlFunc, mwChain...)
 }
 
 func (rg *RouteGroup) getAbsPath() string {
@@ -59,4 +68,16 @@ func (rg *RouteGroup) getAbsPath() string {
 	}
 
 	return rg.parent.getAbsPath() + rg.basePath
+}
+
+func (rg *RouteGroup) Use(mw ...MwFunc) {
+	rg.mwChain = append(rg.mwChain, mw...)
+}
+
+func (rg *RouteGroup) getMwChain() MwChain {
+	if rg.parent == nil {
+		return rg.mwChain
+	}
+
+	return append(rg.parent.getMwChain(), rg.mwChain...)
 }

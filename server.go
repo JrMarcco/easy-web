@@ -1,19 +1,28 @@
 package easy_web
 
 import (
+	"log"
 	"net"
 	"net/http"
 )
 
 var _ Server = (*HttpSvr)(nil)
 
+// HdlFunc is a handler function for a route
 type HdlFunc func(ctx *Context)
+
+// MwFunc is a middleware function that returns a new HdlFunc
+// It is an aop implementation.
+type MwFunc func(next HdlFunc) HdlFunc
+
+// MwChain is a chain of middleware functions
+type MwChain []MwFunc
 
 type Server interface {
 	http.Handler
 
 	Start() error
-	RouteRegister(method string, path string, hdl HdlFunc)
+	RouteRegister(method string, path string, hdl HdlFunc, mwFunc ...MwFunc)
 }
 
 type SvrOpt func(*HttpSvr)
@@ -52,6 +61,7 @@ func (s *HttpSvr) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.serve(ctx)
 }
 
+// serve is the main function to serve the request
 func (s *HttpSvr) serve(ctx *Context) {
 	matched := s.getRoute(ctx.Req.Method, ctx.Req.URL.Path)
 	if !matched.ok {
@@ -59,10 +69,33 @@ func (s *HttpSvr) serve(ctx *Context) {
 		return
 	}
 
-	ctx.pathParams = matched.params
-
 	hdlFunc := matched.hdlFunc
+	// middleware execution
+	mwChain := matched.mwChain
+	// reverse the middleware chain
+	for i := len(mwChain) - 1; i >= 0; i-- {
+		hdlFunc = mwChain[i](hdlFunc)
+	}
+	// wrap the handler function
+	hdlFunc = func(next HdlFunc) HdlFunc {
+		return func(ctx *Context) {
+			next(ctx)
+			s.flushRsp(ctx)
+		}
+	}(hdlFunc)
+
+	ctx.pathParams = matched.params
 	hdlFunc(ctx)
+}
+
+func (h *HttpSvr) flushRsp(ctx *Context) {
+	if ctx.StatusCode > 0 {
+		ctx.Rsp.WriteHeader(ctx.StatusCode)
+	}
+
+	if _, err := ctx.Rsp.Write(ctx.Data); err != nil {
+		log.Fatalln("[easy_web] flush response failed", err)
+	}
 }
 
 func (s *HttpSvr) Start() error {
@@ -74,36 +107,36 @@ func (s *HttpSvr) Start() error {
 	return http.Serve(ln, s)
 }
 
-func (s *HttpSvr) RouteRegister(method string, path string, hdl HdlFunc) {
-	s.addRoute(method, path, hdl)
+func (s *HttpSvr) RouteRegister(method string, path string, hdl HdlFunc, mwFunc ...MwFunc) {
+	s.addRoute(method, path, hdl, mwFunc...)
 }
 
-func (s *HttpSvr) Get(path string, hdl HdlFunc) {
-	s.addRoute(http.MethodGet, path, hdl)
+func (s *HttpSvr) Get(path string, hdl HdlFunc, mwFunc ...MwFunc) {
+	s.addRoute(http.MethodGet, path, hdl, mwFunc...)
 }
 
-func (s *HttpSvr) Post(path string, hdl HdlFunc) {
-	s.addRoute(http.MethodPost, path, hdl)
+func (s *HttpSvr) Post(path string, hdl HdlFunc, mwFunc ...MwFunc) {
+	s.addRoute(http.MethodPost, path, hdl, mwFunc...)
 }
 
-func (s *HttpSvr) Put(path string, hdl HdlFunc) {
-	s.addRoute(http.MethodPut, path, hdl)
+func (s *HttpSvr) Put(path string, hdl HdlFunc, mwFunc ...MwFunc) {
+	s.addRoute(http.MethodPut, path, hdl, mwFunc...)
 }
 
-func (s *HttpSvr) Patch(path string, hdl HdlFunc) {
-	s.addRoute(http.MethodPatch, path, hdl)
+func (s *HttpSvr) Patch(path string, hdl HdlFunc, mwFunc ...MwFunc) {
+	s.addRoute(http.MethodPatch, path, hdl, mwFunc...)
 }
 
-func (s *HttpSvr) Delete(path string, hdl HdlFunc) {
-	s.addRoute(http.MethodDelete, path, hdl)
+func (s *HttpSvr) Delete(path string, hdl HdlFunc, mwFunc ...MwFunc) {
+	s.addRoute(http.MethodDelete, path, hdl, mwFunc...)
 }
 
-func (s *HttpSvr) Head(path string, hdl HdlFunc) {
-	s.addRoute(http.MethodHead, path, hdl)
+func (s *HttpSvr) Head(path string, hdl HdlFunc, mwFunc ...MwFunc) {
+	s.addRoute(http.MethodHead, path, hdl, mwFunc...)
 }
 
-func (s *HttpSvr) Options(path string, hdl HdlFunc) {
-	s.addRoute(http.MethodOptions, path, hdl)
+func (s *HttpSvr) Options(path string, hdl HdlFunc, mwFunc ...MwFunc) {
+	s.addRoute(http.MethodOptions, path, hdl, mwFunc...)
 }
 
 func (s *HttpSvr) Group(path string) *RouteGroup {

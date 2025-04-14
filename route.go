@@ -25,7 +25,7 @@ func newRouteTree() *routeTree {
 	}
 }
 
-func (t *routeTree) addRoute(method string, path string, hdlFunc HdlFunc) {
+func (t *routeTree) addRoute(method string, path string, hdlFunc HdlFunc, mwFunc ...MwFunc) {
 	if path == "" {
 		panic("[easy_web] path is empty")
 	}
@@ -64,6 +64,7 @@ func (t *routeTree) addRoute(method string, path string, hdlFunc HdlFunc) {
 	}
 
 	root.hdlFunc = hdlFunc
+	root.mwChain = append(root.mwChain, mwFunc...)
 }
 
 func (t *routeTree) getRoute(method string, path string) *matched {
@@ -78,6 +79,7 @@ func (t *routeTree) getRoute(method string, path string) *matched {
 	if path == "" {
 		matched.ok = root.hdlFunc != nil
 		matched.hdlFunc = root.hdlFunc
+		matched.mwChain = root.mwChain
 		return matched
 	}
 
@@ -107,6 +109,7 @@ func (t *routeTree) getRoute(method string, path string) *matched {
 
 	matched.ok = root.hdlFunc != nil
 	matched.hdlFunc = root.hdlFunc
+	matched.mwChain = root.mwChain
 	return matched
 }
 
@@ -116,24 +119,6 @@ func (t *routeTree) putMatchInfo(matched *matched) {
 	matched.reset()
 
 	t.pool.Put(matched)
-}
-
-type matched struct {
-	ok      bool
-	hdlFunc HdlFunc
-	params  map[string]string
-}
-
-func (m *matched) addParam(key, value string) {
-	m.params[key] = value
-}
-
-func (m *matched) reset() {
-	m.ok = false
-	m.hdlFunc = nil
-	for k := range m.params {
-		delete(m.params, k)
-	}
 }
 
 const (
@@ -155,6 +140,7 @@ type node struct {
 
 	re      *regexp.Regexp
 	hdlFunc HdlFunc
+	mwChain MwChain
 }
 
 func (n *node) addChild(path string) *node {
@@ -257,4 +243,25 @@ func (n *node) getWildcardOrParamN() (*node, bool) {
 	}
 
 	return nil, false
+}
+
+type matched struct {
+	ok     bool
+	params map[string]string
+
+	hdlFunc HdlFunc
+	mwChain MwChain
+}
+
+func (m *matched) addParam(key, value string) {
+	m.params[key] = value
+}
+
+func (m *matched) reset() {
+	m.ok = false
+	m.hdlFunc = nil
+	m.mwChain = nil
+	for k := range m.params {
+		delete(m.params, k)
+	}
 }

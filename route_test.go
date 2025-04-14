@@ -270,6 +270,10 @@ func TestRouteTree_addRoute(t *testing.T) {
 			assert.True(t, ok)
 		})
 	}
+}
+
+func TestRouteTree_addRoute_panic(t *testing.T) {
+	mockHdlFunc := func(ctx *Context) {}
 
 	// invalid path
 	tree := newRouteTree()
@@ -318,6 +322,59 @@ func TestRouteTree_addRoute(t *testing.T) {
 	assert.Panics(t, func() {
 		tree.addRoute(http.MethodGet, "/mall/items/re:^\\w+$", mockHdlFunc)
 	})
+}
+
+func TestRouteTree_addRoute_middleware(t *testing.T) {
+	mockHdlFunc := func(ctx *Context) {}
+	firstMockMwFunc := func(next HdlFunc) HdlFunc {
+		return func(ctx *Context) {
+			println("first middleware")
+			next(ctx)
+		}
+	}
+	secondMockMwFunc := func(next HdlFunc) HdlFunc {
+		return func(ctx *Context) {
+			println("second middleware")
+			next(ctx)
+		}
+	}
+
+	tree := newRouteTree()
+	tree.addRoute(http.MethodGet, "/mall/goods/:id", mockHdlFunc, firstMockMwFunc, secondMockMwFunc)
+
+	wantTrees := &routeTree{
+		m: map[string]*node{
+			http.MethodGet: {
+				typ:  static,
+				path: "/",
+				children: map[string]*node{
+					"mall": {
+						typ:  static,
+						path: "mall",
+						children: map[string]*node{
+							"goods": {
+								typ:  static,
+								path: "goods",
+								paramN: &node{
+									typ:      param,
+									path:     ":id",
+									hdlFunc:  mockHdlFunc,
+									mwChain:  MwChain{firstMockMwFunc, secondMockMwFunc},
+									children: nil,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	msg, ok := tree.equal(wantTrees)
+	if !ok {
+		t.Log(msg)
+	}
+	assert.True(t, ok)
 }
 
 func TestRouteTree_getRoute(t *testing.T) {
@@ -536,6 +593,16 @@ func (n *node) equal(other *node) (string, bool) {
 		}
 	}
 
+	if n.mwChain != nil {
+		if other.mwChain == nil {
+			return "mwChain not found in other", false
+		}
+
+		if !n.mwChain.equal(other.mwChain) {
+			return "mwChain not equal", false
+		}
+	}
+
 	for path, node := range n.children {
 		otherNode, ok := other.children[path]
 		if !ok {
@@ -553,4 +620,17 @@ func (n *node) equal(other *node) (string, bool) {
 
 func (h HdlFunc) equal(other HdlFunc) bool {
 	return reflect.ValueOf(h) == reflect.ValueOf(other)
+}
+
+func (m MwChain) equal(other MwChain) bool {
+	if len(m) != len(other) {
+		return false
+	}
+
+	for i, mw := range m {
+		if reflect.ValueOf(mw) != reflect.ValueOf(other[i]) {
+			return false
+		}
+	}
+	return true
 }
