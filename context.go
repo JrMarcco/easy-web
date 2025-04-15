@@ -98,11 +98,11 @@ type ParamVal struct {
 	err error
 }
 
-func (s *ParamVal) String() (string, error) {
+func (s ParamVal) String() (string, error) {
 	return s.val, s.err
 }
 
-func (s *ParamVal) AsInt() (int, error) {
+func (s ParamVal) AsInt() (int, error) {
 	if s.err != nil {
 		return 0, s.err
 	}
@@ -110,7 +110,7 @@ func (s *ParamVal) AsInt() (int, error) {
 	return strconv.Atoi(s.val)
 }
 
-func (s *ParamVal) AsInt64() (int64, error) {
+func (s ParamVal) AsInt64() (int64, error) {
 	if s.err != nil {
 		return 0, s.err
 	}
@@ -118,7 +118,7 @@ func (s *ParamVal) AsInt64() (int64, error) {
 	return strconv.ParseInt(s.val, 10, 64)
 }
 
-func (s *ParamVal) AsUint64() (uint64, error) {
+func (s ParamVal) AsUint64() (uint64, error) {
 	if s.err != nil {
 		return 0, s.err
 	}
@@ -126,7 +126,7 @@ func (s *ParamVal) AsUint64() (uint64, error) {
 	return strconv.ParseUint(s.val, 10, 64)
 }
 
-func (s *ParamVal) AsFloat64() (float64, error) {
+func (s ParamVal) AsFloat64() (float64, error) {
 	if s.err != nil {
 		return 0, s.err
 	}
