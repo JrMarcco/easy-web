@@ -25,7 +25,7 @@ func newRouteTree() *routeTree {
 	}
 }
 
-func (t *routeTree) addRoute(method string, path string, hdlFunc HdlFunc, mwFunc ...MwFunc) {
+func (t *routeTree) addRoute(method string, path string, hdlFunc HandleFunc, mwFunc ...Middleware) {
 	if path == "" {
 		panic("[easy_web] path is empty")
 	}
@@ -42,11 +42,11 @@ func (t *routeTree) addRoute(method string, path string, hdlFunc HdlFunc, mwFunc
 
 	path = strings.Trim(path, "/")
 	if path == "" {
-		if root.hdlFunc != nil {
+		if root.handleFunc != nil {
 			panic(fmt.Sprintf("[easy_web] route %s already exists", path))
 		}
 
-		root.hdlFunc = hdlFunc
+		root.handleFunc = hdlFunc
 		return
 	}
 
@@ -59,12 +59,12 @@ func (t *routeTree) addRoute(method string, path string, hdlFunc HdlFunc, mwFunc
 		root = root.addChild(seg)
 	}
 
-	if root.hdlFunc != nil {
+	if root.handleFunc != nil {
 		panic(fmt.Sprintf("[easy_web] route %s already exists", path))
 	}
 
-	root.hdlFunc = hdlFunc
-	root.mwChain = append(root.mwChain, mwFunc...)
+	root.handleFunc = hdlFunc
+	root.middlewareChain = append(root.middlewareChain, mwFunc...)
 }
 
 func (t *routeTree) getRoute(method string, path string) *matched {
@@ -135,9 +135,9 @@ type node struct {
 	paramN    *node
 	regexpN   *node
 
-	re      *regexp.Regexp
-	hdlFunc HdlFunc
-	mwChain MwChain
+	re              *regexp.Regexp
+	handleFunc      HandleFunc
+	middlewareChain MiddlewareChain
 }
 
 func (n *node) addChild(path string) *node {

@@ -8,11 +8,11 @@ import (
 )
 
 func TestRouteGroup_Get(t *testing.T) {
-	svr := NewHttpSvr()
+	svr := NewHttpServer()
 	rg := svr.Group("/api")
 	rg.Get("/user", func(ctx *Context) {})
 
 	mi := svr.getRoute(http.MethodGet, "/api/user")
 	assert.NotNil(t, mi.node)
-	assert.NotNil(t, mi.node.hdlFunc)
+	assert.NotNil(t, mi.node.handleFunc)
 }

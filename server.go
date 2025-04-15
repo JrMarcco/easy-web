@@ -6,35 +6,35 @@ import (
 	"net/http"
 )
 
-var _ Server = (*HttpSvr)(nil)
+var _ Server = (*HttpServer)(nil)
 
-// HdlFunc is a handler function for a route
-type HdlFunc func(ctx *Context)
+// HandleFunc is a handler function for a route
+type HandleFunc func(ctx *Context)
 
-// MwFunc is a middleware function that returns a new HdlFunc
+// Middleware is a middleware function that returns a new HdlFunc
 // It is an aop implementation.
-type MwFunc func(next HdlFunc) HdlFunc
+type Middleware func(next HandleFunc) HandleFunc
 
-// MwChain is a chain of middleware functions
-type MwChain []MwFunc
+// MiddlewareChain is a chain of middleware functions
+type MiddlewareChain []Middleware
 
 type Server interface {
 	http.Handler
 
 	Start() error
-	RouteRegister(method string, path string, hdl HdlFunc, mwFunc ...MwFunc)
+	RouteRegister(method string, path string, hdl HandleFunc, mwFunc ...Middleware)
 }
 
-type SvrOpt func(*HttpSvr)
+type ServerOpt func(*HttpServer)
 
-type HttpSvr struct {
+type HttpServer struct {
 	*routeTree
 
 	addr string
 }
 
-func NewHttpSvr(opts ...SvrOpt) *HttpSvr {
-	svr := &HttpSvr{
+func NewHttpServer(opts ...ServerOpt) *HttpServer {
+	svr := &HttpServer{
 		routeTree: newRouteTree(),
 		addr:      ":8080",
 	}
@@ -46,63 +46,65 @@ func NewHttpSvr(opts ...SvrOpt) *HttpSvr {
 	return svr
 }
 
-func SvrWithAddr(addr string) SvrOpt {
-	return func(s *HttpSvr) {
+func WithAddr(addr string) ServerOpt {
+	return func(s *HttpServer) {
 		s.addr = addr
 	}
 }
 
-func (s *HttpSvr) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (s *HttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := &Context{
-		Req: r,
-		Rsp: w,
+		Req:  r,
+		Resp: w,
 	}
 
 	s.serve(ctx)
 }
 
 // serve is the main function to serve the request
-func (s *HttpSvr) serve(ctx *Context) {
+func (s *HttpServer) serve(ctx *Context) {
 	matched := s.getRoute(ctx.Req.Method, ctx.Req.URL.Path)
+	defer s.putMatchInfo(matched)
+
 	if matched.node == nil {
-		ctx.RspJson(http.StatusNotFound, "Not Found")
+		ctx.RespJson(http.StatusNotFound, "Not Found")
 		return
 	}
 
 	ctx.MatchedRoute = matched.node.fullRoute
 
-	hdlFunc := matched.node.hdlFunc
+	handleFunc := matched.node.handleFunc
 	// middleware execution
-	mwChain := matched.node.mwChain
+	middlewareChain := matched.node.middlewareChain
 	// reverse the middleware chain
-	for i := len(mwChain) - 1; i >= 0; i-- {
-		hdlFunc = mwChain[i](hdlFunc)
+	for i := len(middlewareChain) - 1; i >= 0; i-- {
+		handleFunc = middlewareChain[i](handleFunc)
 	}
 
 	// wrap the handler function
 	// flush the response after the handler function is executed
-	hdlFunc = func(next HdlFunc) HdlFunc {
+	handleFunc = func(next HandleFunc) HandleFunc {
 		return func(ctx *Context) {
 			next(ctx)
-			s.flushRsp(ctx)
+			s.flushResp(ctx)
 		}
-	}(hdlFunc)
+	}(handleFunc)
 
 	ctx.pathParams = matched.params
-	hdlFunc(ctx)
+	handleFunc(ctx)
 }
 
-func (h *HttpSvr) flushRsp(ctx *Context) {
+func (h *HttpServer) flushResp(ctx *Context) {
 	if ctx.StatusCode > 0 {
-		ctx.Rsp.WriteHeader(ctx.StatusCode)
+		ctx.Resp.WriteHeader(ctx.StatusCode)
 	}
 
-	if _, err := ctx.Rsp.Write(ctx.Data); err != nil {
+	if _, err := ctx.Resp.Write(ctx.Data); err != nil {
 		log.Fatalln("[easy_web] flush response failed", err)
 	}
 }
 
-func (s *HttpSvr) Start() error {
+func (s *HttpServer) Start() error {
 	ln, err := net.Listen("tcp", s.addr)
 	if err != nil {
 		return err
@@ -111,38 +113,38 @@ func (s *HttpSvr) Start() error {
 	return http.Serve(ln, s)
 }
 
-func (s *HttpSvr) RouteRegister(method string, path string, hdl HdlFunc, mwFunc ...MwFunc) {
+func (s *HttpServer) RouteRegister(method string, path string, hdl HandleFunc, mwFunc ...Middleware) {
 	s.addRoute(method, path, hdl, mwFunc...)
 }
 
-func (s *HttpSvr) Get(path string, hdl HdlFunc, mwFunc ...MwFunc) {
+func (s *HttpServer) Get(path string, hdl HandleFunc, mwFunc ...Middleware) {
 	s.addRoute(http.MethodGet, path, hdl, mwFunc...)
 }
 
-func (s *HttpSvr) Post(path string, hdl HdlFunc, mwFunc ...MwFunc) {
+func (s *HttpServer) Post(path string, hdl HandleFunc, mwFunc ...Middleware) {
 	s.addRoute(http.MethodPost, path, hdl, mwFunc...)
 }
 
-func (s *HttpSvr) Put(path string, hdl HdlFunc, mwFunc ...MwFunc) {
+func (s *HttpServer) Put(path string, hdl HandleFunc, mwFunc ...Middleware) {
 	s.addRoute(http.MethodPut, path, hdl, mwFunc...)
 }
 
-func (s *HttpSvr) Patch(path string, hdl HdlFunc, mwFunc ...MwFunc) {
+func (s *HttpServer) Patch(path string, hdl HandleFunc, mwFunc ...Middleware) {
 	s.addRoute(http.MethodPatch, path, hdl, mwFunc...)
 }
 
-func (s *HttpSvr) Delete(path string, hdl HdlFunc, mwFunc ...MwFunc) {
+func (s *HttpServer) Delete(path string, hdl HandleFunc, mwFunc ...Middleware) {
 	s.addRoute(http.MethodDelete, path, hdl, mwFunc...)
 }
 
-func (s *HttpSvr) Head(path string, hdl HdlFunc, mwFunc ...MwFunc) {
+func (s *HttpServer) Head(path string, hdl HandleFunc, mwFunc ...Middleware) {
 	s.addRoute(http.MethodHead, path, hdl, mwFunc...)
 }
 
-func (s *HttpSvr) Options(path string, hdl HdlFunc, mwFunc ...MwFunc) {
+func (s *HttpServer) Options(path string, hdl HandleFunc, mwFunc ...Middleware) {
 	s.addRoute(http.MethodOptions, path, hdl, mwFunc...)
 }
 
-func (s *HttpSvr) Group(path string) *RouteGroup {
+func (s *HttpServer) Group(path string) *RouteGroup {
 	return newRouteGroup(s, path)
 }

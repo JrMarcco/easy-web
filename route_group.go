@@ -1,15 +1,15 @@
 package easy_web
 
 type RouteGroup struct {
-	svr *HttpSvr
+	svr *HttpServer
 
 	basePath string
 	parent   *RouteGroup
 
-	mwChain MwChain
+	mwChain MiddlewareChain
 }
 
-func newRouteGroup(svr *HttpSvr, path string) *RouteGroup {
+func newRouteGroup(svr *HttpServer, path string) *RouteGroup {
 	if path == "" || path[0] != '/' {
 		panic("[easy_web] path must start with '/'")
 	}
@@ -27,37 +27,37 @@ func (rg *RouteGroup) Group(prefix string) *RouteGroup {
 	return newRg
 }
 
-func (rg *RouteGroup) Get(relativePath string, hdlFunc HdlFunc, mws ...MwFunc) {
+func (rg *RouteGroup) Get(relativePath string, hdlFunc HandleFunc, mws ...Middleware) {
 	mwChain := append(rg.getMwChain(), mws...)
 	rg.svr.Get(rg.getAbsPath()+relativePath, hdlFunc, mwChain...)
 }
 
-func (rg *RouteGroup) Post(relativePath string, hdlFunc HdlFunc, mws ...MwFunc) {
+func (rg *RouteGroup) Post(relativePath string, hdlFunc HandleFunc, mws ...Middleware) {
 	mwChain := append(rg.getMwChain(), mws...)
 	rg.svr.Post(rg.getAbsPath()+relativePath, hdlFunc, mwChain...)
 }
 
-func (rg *RouteGroup) Put(relativePath string, hdlFunc HdlFunc, mws ...MwFunc) {
+func (rg *RouteGroup) Put(relativePath string, hdlFunc HandleFunc, mws ...Middleware) {
 	mwChain := append(rg.getMwChain(), mws...)
 	rg.svr.Put(rg.getAbsPath()+relativePath, hdlFunc, mwChain...)
 }
 
-func (rg *RouteGroup) Patch(relativePath string, hdlFunc HdlFunc, mws ...MwFunc) {
+func (rg *RouteGroup) Patch(relativePath string, hdlFunc HandleFunc, mws ...Middleware) {
 	mwChain := append(rg.getMwChain(), mws...)
 	rg.svr.Patch(rg.getAbsPath()+relativePath, hdlFunc, mwChain...)
 }
 
-func (rg *RouteGroup) Delete(relativePath string, hdlFunc HdlFunc, mws ...MwFunc) {
+func (rg *RouteGroup) Delete(relativePath string, hdlFunc HandleFunc, mws ...Middleware) {
 	mwChain := append(rg.getMwChain(), mws...)
 	rg.svr.Delete(rg.getAbsPath()+relativePath, hdlFunc, mwChain...)
 }
 
-func (rg *RouteGroup) Head(relativePath string, hdlFunc HdlFunc, mws ...MwFunc) {
+func (rg *RouteGroup) Head(relativePath string, hdlFunc HandleFunc, mws ...Middleware) {
 	mwChain := append(rg.getMwChain(), mws...)
 	rg.svr.Head(rg.getAbsPath()+relativePath, hdlFunc, mwChain...)
 }
 
-func (rg *RouteGroup) Options(relativePath string, hdlFunc HdlFunc, mws ...MwFunc) {
+func (rg *RouteGroup) Options(relativePath string, hdlFunc HandleFunc, mws ...Middleware) {
 	mwChain := append(rg.getMwChain(), mws...)
 	rg.svr.Options(rg.getAbsPath()+relativePath, hdlFunc, mwChain...)
 }
@@ -70,11 +70,11 @@ func (rg *RouteGroup) getAbsPath() string {
 	return rg.parent.getAbsPath() + rg.basePath
 }
 
-func (rg *RouteGroup) Use(mw ...MwFunc) {
+func (rg *RouteGroup) Use(mw ...Middleware) {
 	rg.mwChain = append(rg.mwChain, mw...)
 }
 
-func (rg *RouteGroup) getMwChain() MwChain {
+func (rg *RouteGroup) getMwChain() MiddlewareChain {
 	if rg.parent == nil {
 		return rg.mwChain
 	}

@@ -26,11 +26,11 @@ func TestRouteTree_addRoute(t *testing.T) {
 			wantTrees: &routeTree{
 				m: map[string]*node{
 					http.MethodGet: {
-						typ:       static,
-						baseRoute: "",
-						fullRoute: "",
-						hdlFunc:   mockHdlFunc,
-						children:  nil,
+						typ:        static,
+						baseRoute:  "",
+						fullRoute:  "",
+						handleFunc: mockHdlFunc,
+						children:   nil,
 					},
 				},
 			},
@@ -51,11 +51,11 @@ func TestRouteTree_addRoute(t *testing.T) {
 								fullRoute: "/user",
 								children: map[string]*node{
 									"test": {
-										typ:       static,
-										baseRoute: "test",
-										fullRoute: "/user/test",
-										hdlFunc:   mockHdlFunc,
-										children:  nil,
+										typ:        static,
+										baseRoute:  "test",
+										fullRoute:  "/user/test",
+										handleFunc: mockHdlFunc,
+										children:   nil,
 									},
 								},
 							},
@@ -80,11 +80,11 @@ func TestRouteTree_addRoute(t *testing.T) {
 								fullRoute: "/user",
 								children: map[string]*node{
 									"test": {
-										typ:       static,
-										baseRoute: "test",
-										fullRoute: "/user/test",
-										hdlFunc:   mockHdlFunc,
-										children:  nil,
+										typ:        static,
+										baseRoute:  "test",
+										fullRoute:  "/user/test",
+										handleFunc: mockHdlFunc,
+										children:   nil,
 									},
 								},
 							},
@@ -104,11 +104,11 @@ func TestRouteTree_addRoute(t *testing.T) {
 						fullRoute: "",
 						children: map[string]*node{
 							"user": {
-								typ:       static,
-								baseRoute: "user",
-								fullRoute: "/user",
-								hdlFunc:   mockHdlFunc,
-								children:  nil,
+								typ:        static,
+								baseRoute:  "user",
+								fullRoute:  "/user",
+								handleFunc: mockHdlFunc,
+								children:   nil,
 							},
 						},
 					},
@@ -131,11 +131,11 @@ func TestRouteTree_addRoute(t *testing.T) {
 								fullRoute: "/mall",
 								children:  map[string]*node{},
 								wildcardN: &node{
-									typ:       wildcard,
-									baseRoute: "*",
-									fullRoute: "/mall/*",
-									hdlFunc:   mockHdlFunc,
-									children:  nil,
+									typ:        wildcard,
+									baseRoute:  "*",
+									fullRoute:  "/mall/*",
+									handleFunc: mockHdlFunc,
+									children:   nil,
 								},
 							},
 						},
@@ -164,11 +164,11 @@ func TestRouteTree_addRoute(t *testing.T) {
 									fullRoute: "/mall/*",
 									children: map[string]*node{
 										"transfer": {
-											typ:       static,
-											baseRoute: "transfer",
-											fullRoute: "/mall/*/transfer",
-											hdlFunc:   mockHdlFunc,
-											children:  nil,
+											typ:        static,
+											baseRoute:  "transfer",
+											fullRoute:  "/mall/*/transfer",
+											handleFunc: mockHdlFunc,
+											children:   nil,
 										},
 									},
 								},
@@ -198,11 +198,11 @@ func TestRouteTree_addRoute(t *testing.T) {
 										baseRoute: "order",
 										fullRoute: "/mall/order",
 										paramN: &node{
-											typ:       param,
-											baseRoute: ":id",
-											fullRoute: "/mall/order/:id",
-											hdlFunc:   mockHdlFunc,
-											children:  nil,
+											typ:        param,
+											baseRoute:  ":id",
+											fullRoute:  "/mall/order/:id",
+											handleFunc: mockHdlFunc,
+											children:   nil,
 										},
 									},
 								},
@@ -237,11 +237,11 @@ func TestRouteTree_addRoute(t *testing.T) {
 											fullRoute: "/mall/order/:id",
 											children: map[string]*node{
 												"transfer": {
-													typ:       static,
-													baseRoute: "transfer",
-													fullRoute: "/mall/order/:id/transfer",
-													hdlFunc:   mockHdlFunc,
-													children:  nil,
+													typ:        static,
+													baseRoute:  "transfer",
+													fullRoute:  "/mall/order/:id/transfer",
+													handleFunc: mockHdlFunc,
+													children:   nil,
 												},
 											},
 										},
@@ -273,9 +273,9 @@ func TestRouteTree_addRoute(t *testing.T) {
 										baseRoute: "order",
 										fullRoute: "/mall/order",
 										regexpN: &node{
-											typ:     reg,
-											re:      regexp.MustCompile(`^\d+$`),
-											hdlFunc: mockHdlFunc,
+											typ:        reg,
+											re:         regexp.MustCompile(`^\d+$`),
+											handleFunc: mockHdlFunc,
 										},
 									},
 								},
@@ -355,13 +355,13 @@ func TestRouteTree_addRoute_panic(t *testing.T) {
 
 func TestRouteTree_addRoute_middleware(t *testing.T) {
 	mockHdlFunc := func(ctx *Context) {}
-	firstMockMwFunc := func(next HdlFunc) HdlFunc {
+	firstMockMwFunc := func(next HandleFunc) HandleFunc {
 		return func(ctx *Context) {
 			println("first middleware")
 			next(ctx)
 		}
 	}
-	secondMockMwFunc := func(next HdlFunc) HdlFunc {
+	secondMockMwFunc := func(next HandleFunc) HandleFunc {
 		return func(ctx *Context) {
 			println("second middleware")
 			next(ctx)
@@ -388,12 +388,12 @@ func TestRouteTree_addRoute_middleware(t *testing.T) {
 								baseRoute: "goods",
 								fullRoute: "/mall/goods",
 								paramN: &node{
-									typ:       param,
-									baseRoute: ":id",
-									fullRoute: "/mall/goods/:id",
-									hdlFunc:   mockHdlFunc,
-									mwChain:   MwChain{firstMockMwFunc, secondMockMwFunc},
-									children:  nil,
+									typ:             param,
+									baseRoute:       ":id",
+									fullRoute:       "/mall/goods/:id",
+									handleFunc:      mockHdlFunc,
+									middlewareChain: MiddlewareChain{firstMockMwFunc, secondMockMwFunc},
+									children:        nil,
 								},
 							},
 						},
@@ -443,7 +443,7 @@ func TestRouteTree_getRoute(t *testing.T) {
 			path:   "/",
 			wantInfo: &matched{
 				node: &node{
-					hdlFunc: mockHdlFunc,
+					handleFunc: mockHdlFunc,
 				},
 			},
 		}, {
@@ -466,7 +466,7 @@ func TestRouteTree_getRoute(t *testing.T) {
 			path:   "/v2/mall/order",
 			wantInfo: &matched{
 				node: &node{
-					hdlFunc: mockHdlFunc,
+					handleFunc: mockHdlFunc,
 				},
 			},
 		}, {
@@ -475,7 +475,7 @@ func TestRouteTree_getRoute(t *testing.T) {
 			path:   "/v2/mall/transaction/something",
 			wantInfo: &matched{
 				node: &node{
-					hdlFunc: mockHdlFunc,
+					handleFunc: mockHdlFunc,
 				},
 			},
 		}, {
@@ -484,7 +484,7 @@ func TestRouteTree_getRoute(t *testing.T) {
 			path:   "/v2/mall/transaction/a/b/c",
 			wantInfo: &matched{
 				node: &node{
-					hdlFunc: mockHdlFunc,
+					handleFunc: mockHdlFunc,
 				},
 			},
 		}, {
@@ -493,7 +493,7 @@ func TestRouteTree_getRoute(t *testing.T) {
 			path:   "/v2/mall/a/b/c/goods",
 			wantInfo: &matched{
 				node: &node{
-					hdlFunc: mockHdlFunc,
+					handleFunc: mockHdlFunc,
 				},
 			},
 		}, {
@@ -502,7 +502,7 @@ func TestRouteTree_getRoute(t *testing.T) {
 			path:   "/v2/mall/transaction/123",
 			wantInfo: &matched{
 				node: &node{
-					hdlFunc: mockHdlFunc,
+					handleFunc: mockHdlFunc,
 				},
 				params: map[string]string{
 					"id":   "123",
@@ -515,7 +515,7 @@ func TestRouteTree_getRoute(t *testing.T) {
 			path:   "/v2/mall/transaction/123/customer/tom",
 			wantInfo: &matched{
 				node: &node{
-					hdlFunc: mockHdlFunc,
+					handleFunc: mockHdlFunc,
 				},
 			},
 		}, {
@@ -524,7 +524,7 @@ func TestRouteTree_getRoute(t *testing.T) {
 			path:   "/v3/mall/oreder/1234",
 			wantInfo: &matched{
 				node: &node{
-					hdlFunc: mockHdlFunc,
+					handleFunc: mockHdlFunc,
 				},
 			},
 		}, {
@@ -540,7 +540,7 @@ func TestRouteTree_getRoute(t *testing.T) {
 			path:   "/v3/email/example@gmail.com",
 			wantInfo: &matched{
 				node: &node{
-					hdlFunc: mockHdlFunc,
+					handleFunc: mockHdlFunc,
 				},
 			},
 		}, {
@@ -558,7 +558,7 @@ func TestRouteTree_getRoute(t *testing.T) {
 			m := tree.getRoute(tc.method, tc.path)
 
 			if tc.wantInfo.node != nil {
-				assert.True(t, tc.wantInfo.node.hdlFunc.equal(m.node.hdlFunc))
+				assert.True(t, tc.wantInfo.node.handleFunc.equal(m.node.handleFunc))
 			}
 
 			tree.putMatchInfo(m)
@@ -631,22 +631,22 @@ func (n *node) equal(other *node) (string, bool) {
 		}
 	}
 
-	if n.hdlFunc != nil {
-		if other.hdlFunc == nil {
+	if n.handleFunc != nil {
+		if other.handleFunc == nil {
 			return "hdlFunc not found in other", false
 		}
 
-		if !n.hdlFunc.equal(other.hdlFunc) {
+		if !n.handleFunc.equal(other.handleFunc) {
 			return "hdlFunc not equal", false
 		}
 	}
 
-	if n.mwChain != nil {
-		if other.mwChain == nil {
+	if n.middlewareChain != nil {
+		if other.middlewareChain == nil {
 			return "mwChain not found in other", false
 		}
 
-		if !n.mwChain.equal(other.mwChain) {
+		if !n.middlewareChain.equal(other.middlewareChain) {
 			return "mwChain not equal", false
 		}
 	}
@@ -666,11 +666,11 @@ func (n *node) equal(other *node) (string, bool) {
 	return "", true
 }
 
-func (h HdlFunc) equal(other HdlFunc) bool {
+func (h HandleFunc) equal(other HandleFunc) bool {
 	return reflect.ValueOf(h) == reflect.ValueOf(other)
 }
 
-func (m MwChain) equal(other MwChain) bool {
+func (m MiddlewareChain) equal(other MiddlewareChain) bool {
 	if len(m) != len(other) {
 		return false
 	}

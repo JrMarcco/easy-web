@@ -7,25 +7,25 @@ import (
 	"github.com/JrMarcco/easy_web"
 )
 
-type MwBuilder struct {
+type MiddlewareBuilder struct {
 	logFunc func(msg string)
 }
 
-func NewMwBuilder() *MwBuilder {
-	return &MwBuilder{
+func NewMwBuilder() *MiddlewareBuilder {
+	return &MiddlewareBuilder{
 		logFunc: func(msg string) {
 			fmt.Println(msg)
 		},
 	}
 }
 
-func (b *MwBuilder) WithLogFunc(logFunc func(msg string)) *MwBuilder {
+func (b *MiddlewareBuilder) WithLogFunc(logFunc func(msg string)) *MiddlewareBuilder {
 	b.logFunc = logFunc
 	return b
 }
 
-func (b *MwBuilder) Build() easy_web.MwFunc {
-	return func(next easy_web.HdlFunc) easy_web.HdlFunc {
+func (b *MiddlewareBuilder) Build() easy_web.Middleware {
+	return func(next easy_web.HandleFunc) easy_web.HandleFunc {
 		return func(ctx *easy_web.Context) {
 			defer func() {
 				al := &accessLog{

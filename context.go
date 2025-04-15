@@ -8,8 +8,8 @@ import (
 )
 
 type Context struct {
-	Req *http.Request
-	Rsp http.ResponseWriter
+	Req  *http.Request
+	Resp http.ResponseWriter
 
 	StatusCode int
 	Data       []byte
@@ -66,31 +66,31 @@ func (c *Context) QueryParam(key string) ParamVal {
 	}
 }
 
-// RspBytes response with bytes
-func (c *Context) RspBytes(code int, data []byte) error {
+// RespBytes response with bytes
+func (c *Context) RespBytes(code int, data []byte) error {
 	c.StatusCode = code
 	c.Data = data
 	return nil
 }
 
-// RspJson json response
-func (c *Context) RspJson(code int, data any) error {
+// RespJson json response
+func (c *Context) RespJson(code int, data any) error {
 	bs, err := json.Marshal(data)
 	if err != nil {
 		return err
 	}
 
-	return c.RspBytes(code, bs)
+	return c.RespBytes(code, bs)
 }
 
 // Ok response with code 200
 func (c *Context) Ok() error {
-	return c.RspBytes(http.StatusOK, nil)
+	return c.RespBytes(http.StatusOK, nil)
 }
 
 // OkJson json response with code 200
 func (c *Context) OkJson(data any) error {
-	return c.RspJson(http.StatusOK, data)
+	return c.RespJson(http.StatusOK, data)
 }
 
 type ParamVal struct {
