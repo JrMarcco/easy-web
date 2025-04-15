@@ -11,6 +11,14 @@ type MwBuilder struct {
 	logFunc func(msg string)
 }
 
+func NewMwBuilder() *MwBuilder {
+	return &MwBuilder{
+		logFunc: func(msg string) {
+			fmt.Println(msg)
+		},
+	}
+}
+
 func (b *MwBuilder) WithLogFunc(logFunc func(msg string)) *MwBuilder {
 	b.logFunc = logFunc
 	return b
@@ -24,6 +32,7 @@ func (b *MwBuilder) Build() easy_web.MwFunc {
 					Host:   ctx.Req.Host,
 					Method: ctx.Req.Method,
 					Path:   ctx.Req.URL.Path,
+					Route:  ctx.MatchedRoute,
 					Status: ctx.StatusCode,
 				}
 
@@ -40,9 +49,9 @@ func (b *MwBuilder) Build() easy_web.MwFunc {
 }
 
 type accessLog struct {
-	Host         string `json:"host,omitempty"`
-	Method       string `json:"method,omitempty"`
-	Path         string `json:"path,omitempty"`
-	MatchedRoute string `json:"matched_path,omitempty"`
-	Status       int    `json:"status,omitempty"`
+	Host   string `json:"host,omitempty"`
+	Method string `json:"method,omitempty"`
+	Path   string `json:"path,omitempty"`
+	Route  string `json:"route,omitempty"`
+	Status int    `json:"status,omitempty"`
 }

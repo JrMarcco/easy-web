@@ -69,7 +69,7 @@ func (s *HttpSvr) serve(ctx *Context) {
 		return
 	}
 
-	ctx.matchedPath = matched.node.fullRoute
+	ctx.MatchedRoute = matched.node.fullRoute
 
 	hdlFunc := matched.node.hdlFunc
 	// middleware execution

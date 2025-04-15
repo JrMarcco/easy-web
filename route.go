@@ -36,7 +36,7 @@ func (t *routeTree) addRoute(method string, path string, hdlFunc HdlFunc, mwFunc
 
 	root, ok := t.m[method]
 	if !ok {
-		root = &node{baseRoute: "/", fullRoute: "/"}
+		root = &node{baseRoute: "", fullRoute: ""}
 		t.m[method] = root
 	}
 

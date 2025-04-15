@@ -27,8 +27,8 @@ func TestRouteTree_addRoute(t *testing.T) {
 				m: map[string]*node{
 					http.MethodGet: {
 						typ:       static,
-						baseRoute: "/",
-						fullRoute: "/",
+						baseRoute: "",
+						fullRoute: "",
 						hdlFunc:   mockHdlFunc,
 						children:  nil,
 					},
@@ -42,8 +42,8 @@ func TestRouteTree_addRoute(t *testing.T) {
 				m: map[string]*node{
 					http.MethodGet: {
 						typ:       static,
-						baseRoute: "/",
-						fullRoute: "/",
+						baseRoute: "",
+						fullRoute: "",
 						children: map[string]*node{
 							"user": {
 								typ:       static,
@@ -71,8 +71,8 @@ func TestRouteTree_addRoute(t *testing.T) {
 				m: map[string]*node{
 					http.MethodGet: {
 						typ:       static,
-						baseRoute: "/",
-						fullRoute: "/",
+						baseRoute: "",
+						fullRoute: "",
 						children: map[string]*node{
 							"user": {
 								typ:       static,
@@ -100,8 +100,8 @@ func TestRouteTree_addRoute(t *testing.T) {
 				m: map[string]*node{
 					http.MethodGet: {
 						typ:       static,
-						baseRoute: "/",
-						fullRoute: "/",
+						baseRoute: "",
+						fullRoute: "",
 						children: map[string]*node{
 							"user": {
 								typ:       static,
@@ -122,8 +122,8 @@ func TestRouteTree_addRoute(t *testing.T) {
 				m: map[string]*node{
 					http.MethodGet: {
 						typ:       static,
-						baseRoute: "/",
-						fullRoute: "/",
+						baseRoute: "",
+						fullRoute: "",
 						children: map[string]*node{
 							"mall": {
 								typ:       static,
@@ -150,8 +150,8 @@ func TestRouteTree_addRoute(t *testing.T) {
 				m: map[string]*node{
 					http.MethodGet: {
 						typ:       static,
-						baseRoute: "/",
-						fullRoute: "/",
+						baseRoute: "",
+						fullRoute: "",
 						children: map[string]*node{
 							"mall": {
 								typ:       static,
@@ -185,8 +185,8 @@ func TestRouteTree_addRoute(t *testing.T) {
 				m: map[string]*node{
 					http.MethodGet: {
 						typ:       static,
-						baseRoute: "/",
-						fullRoute: "/",
+						baseRoute: "",
+						fullRoute: "",
 						children: map[string]*node{
 							"mall": {
 								typ:       static,
@@ -219,8 +219,8 @@ func TestRouteTree_addRoute(t *testing.T) {
 				m: map[string]*node{
 					http.MethodGet: {
 						typ:       static,
-						baseRoute: "/",
-						fullRoute: "/",
+						baseRoute: "",
+						fullRoute: "",
 						children: map[string]*node{
 							"mall": {
 								typ:       static,
@@ -234,6 +234,7 @@ func TestRouteTree_addRoute(t *testing.T) {
 										paramN: &node{
 											typ:       param,
 											baseRoute: ":id",
+											fullRoute: "/mall/order/:id",
 											children: map[string]*node{
 												"transfer": {
 													typ:       static,
@@ -259,8 +260,8 @@ func TestRouteTree_addRoute(t *testing.T) {
 				m: map[string]*node{
 					http.MethodGet: {
 						typ:       static,
-						baseRoute: "/",
-						fullRoute: "/",
+						baseRoute: "",
+						fullRoute: "",
 						children: map[string]*node{
 							"mall": {
 								typ:       static,
@@ -374,18 +375,22 @@ func TestRouteTree_addRoute_middleware(t *testing.T) {
 		m: map[string]*node{
 			http.MethodGet: {
 				typ:       static,
-				baseRoute: "/",
+				baseRoute: "",
+				fullRoute: "",
 				children: map[string]*node{
 					"mall": {
 						typ:       static,
 						baseRoute: "mall",
+						fullRoute: "/mall",
 						children: map[string]*node{
 							"goods": {
 								typ:       static,
 								baseRoute: "goods",
+								fullRoute: "/mall/goods",
 								paramN: &node{
 									typ:       param,
 									baseRoute: ":id",
+									fullRoute: "/mall/goods/:id",
 									hdlFunc:   mockHdlFunc,
 									mwChain:   MwChain{firstMockMwFunc, secondMockMwFunc},
 									children:  nil,
@@ -580,6 +585,10 @@ func (t *routeTree) equal(other *routeTree) (string, bool) {
 func (n *node) equal(other *node) (string, bool) {
 	if n.baseRoute != other.baseRoute {
 		return fmt.Sprintf("path: %s != %s", n.baseRoute, other.baseRoute), false
+	}
+
+	if n.fullRoute != other.fullRoute {
+		return fmt.Sprintf("fullRoute: %s != %s", n.fullRoute, other.fullRoute), false
 	}
 
 	if n.typ != other.typ {

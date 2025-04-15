@@ -14,9 +14,9 @@ type Context struct {
 	StatusCode int
 	Data       []byte
 
-	matchedPath string
-	pathParams  map[string]string
-	queryParams map[string][]string
+	MatchedRoute string
+	pathParams   map[string]string
+	queryParams  map[string][]string
 }
 
 // BindJson bind json request body to v
