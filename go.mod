@@ -1,4 +1,4 @@
-module github.com/JrMarcco/easy_web
+module github.com/JrMarcco/easy-web
 
 go 1.24
 

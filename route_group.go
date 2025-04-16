@@ -1,4 +1,4 @@
-package easy_web
+package easyweb
 
 type RouteGroup struct {
 	svr *HttpServer

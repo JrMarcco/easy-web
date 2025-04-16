@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/JrMarcco/easy_web"
+	easyweb "github.com/JrMarcco/easy-web"
 )
 
 type MiddlewareBuilder struct {
@@ -24,9 +24,9 @@ func (b *MiddlewareBuilder) WithLogFunc(logFunc func(msg string)) *MiddlewareBui
 	return b
 }
 
-func (b *MiddlewareBuilder) Build() easy_web.Middleware {
-	return func(next easy_web.HandleFunc) easy_web.HandleFunc {
-		return func(ctx *easy_web.Context) {
+func (b *MiddlewareBuilder) Build() easyweb.Middleware {
+	return func(next easyweb.HandleFunc) easyweb.HandleFunc {
+		return func(ctx *easyweb.Context) {
 			defer func() {
 				al := &accessLog{
 					Host:   ctx.Req.Host,

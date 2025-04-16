@@ -1,4 +1,4 @@
-package easy_web
+package easyweb
 
 import (
 	"log"
