@@ -54,8 +54,9 @@ func WithAddr(addr string) ServerOpt {
 
 func (s *HttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := &Context{
-		Req:  r,
-		Resp: w,
+		Req:      r,
+		Resp:     w,
+		TraceCtx: r.Context(),
 	}
 
 	s.serve(ctx)
@@ -67,7 +68,7 @@ func (s *HttpServer) serve(ctx *Context) {
 	defer s.putMatchInfo(matched)
 
 	if matched.node == nil {
-		ctx.RespJson(http.StatusNotFound, "Not Found")
+		_ = ctx.RespBytes(http.StatusNotFound, []byte("Not Found"))
 		return
 	}
 
@@ -94,7 +95,7 @@ func (s *HttpServer) serve(ctx *Context) {
 	handleFunc(ctx)
 }
 
-func (h *HttpServer) flushResp(ctx *Context) {
+func (s *HttpServer) flushResp(ctx *Context) {
 	if ctx.StatusCode > 0 {
 		ctx.Resp.WriteHeader(ctx.StatusCode)
 	}

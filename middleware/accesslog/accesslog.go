@@ -11,14 +11,6 @@ type MiddlewareBuilder struct {
 	logFunc func(msg string)
 }
 
-func NewMwBuilder() *MiddlewareBuilder {
-	return &MiddlewareBuilder{
-		logFunc: func(msg string) {
-			fmt.Println(msg)
-		},
-	}
-}
-
 func (b *MiddlewareBuilder) WithLogFunc(logFunc func(msg string)) *MiddlewareBuilder {
 	b.logFunc = logFunc
 	return b
@@ -45,6 +37,14 @@ func (b *MiddlewareBuilder) Build() easyweb.Middleware {
 			}()
 			next(ctx)
 		}
+	}
+}
+
+func NewMiddlewareBuilder() *MiddlewareBuilder {
+	return &MiddlewareBuilder{
+		logFunc: func(msg string) {
+			fmt.Println(msg)
+		},
 	}
 }
 

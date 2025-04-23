@@ -1,6 +1,7 @@
 package easyweb
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -14,12 +15,13 @@ type Context struct {
 	StatusCode int
 	Data       []byte
 
+	TraceCtx     context.Context
 	MatchedRoute string
 	pathParams   map[string]string
 	queryParams  map[string][]string
 }
 
-// BindJson bind json request body to v
+// BindJson bind JSON request body to v
 func (c *Context) BindJson(v any) error {
 	if c.Req.Body == nil {
 		return errors.New("[easy_web] request body is nil")
@@ -29,6 +31,7 @@ func (c *Context) BindJson(v any) error {
 	return dec.Decode(v)
 }
 
+// FormParam get form param by key.
 func (c *Context) FormParam(key string) ParamVal {
 	if err := c.Req.ParseForm(); err != nil {
 		return ParamVal{
@@ -42,6 +45,7 @@ func (c *Context) FormParam(key string) ParamVal {
 	}
 }
 
+// PathParam get path param by key.
 func (c *Context) PathParam(key string) ParamVal {
 	if val, ok := c.pathParams[key]; ok {
 		return ParamVal{val: val, err: nil}
@@ -52,6 +56,7 @@ func (c *Context) PathParam(key string) ParamVal {
 	}
 }
 
+// QueryParam get query param by key.
 func (c *Context) QueryParam(key string) ParamVal {
 	if c.queryParams == nil {
 		c.queryParams = c.Req.URL.Query()
