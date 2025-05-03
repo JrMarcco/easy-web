@@ -20,7 +20,7 @@ func newRouteGroup(svr *HttpServer, path string) *RouteGroup {
 	}
 }
 
-func (rg *RouteGroup) Group(prefix string) *RouteGroup {
+func (rg *RouteGroup) Group(prefix string, mws ...Middleware) *RouteGroup {
 	newRg := newRouteGroup(rg.svr, prefix)
 	newRg.parent = rg
 

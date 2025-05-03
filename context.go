@@ -19,6 +19,8 @@ type Context struct {
 	MatchedRoute string
 	pathParams   map[string]string
 	queryParams  map[string][]string
+
+	tplEngine TemplateEngine
 }
 
 // BindJson bind JSON request body to v
@@ -96,6 +98,17 @@ func (c *Context) Ok() error {
 // OkJson json response with code 200
 func (c *Context) OkJson(data any) error {
 	return c.RespJson(http.StatusOK, data)
+}
+
+func (c *Context) Render(tplName string, data any) error {
+	var err error
+	c.Data, err = c.tplEngine.Render(c.Req.Context(), tplName, data)
+	if err != nil {
+		c.StatusCode = http.StatusInternalServerError
+	}
+
+	c.StatusCode = http.StatusOK
+	return err
 }
 
 type ParamVal struct {

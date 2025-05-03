@@ -5,6 +5,7 @@ import (
 	"log"
 )
 
+// MiddlewareBuilder should be the most outer in a middleware chain.
 type MiddlewareBuilder struct {
 	statusCode int
 	errMsg     string

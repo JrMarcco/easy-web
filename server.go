@@ -29,7 +29,8 @@ type ServerOpt func(*HttpServer)
 type HttpServer struct {
 	*routeTree
 
-	addr string
+	addr      string
+	tplEngine TemplateEngine
 }
 
 func NewHttpServer(opts ...ServerOpt) *HttpServer {
@@ -45,17 +46,24 @@ func NewHttpServer(opts ...ServerOpt) *HttpServer {
 	return svr
 }
 
-func WithAddrOpt(addr string) ServerOpt {
+func ServerWithAddrOpt(addr string) ServerOpt {
 	return func(s *HttpServer) {
 		s.addr = addr
 	}
 }
 
+func ServerWithTplEngineOpt(tplEngine TemplateEngine) ServerOpt {
+	return func(s *HttpServer) {
+		s.tplEngine = tplEngine
+	}
+}
+
 func (s *HttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := &Context{
-		Req:      r,
-		Resp:     w,
-		TraceCtx: r.Context(),
+		Req:       r,
+		Resp:      w,
+		TraceCtx:  r.Context(),
+		tplEngine: s.tplEngine,
 	}
 
 	s.serve(ctx)
