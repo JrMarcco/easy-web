@@ -10,7 +10,7 @@ import (
 func TestRouteGroup_Get(t *testing.T) {
 	svr := NewHttpServer()
 	rg := svr.Group("/api")
-	rg.Get("/user", func(ctx *Context) {})
+	rg.Route(http.MethodGet, "/user", func(ctx *Context) {})
 
 	mi := svr.getRoute(http.MethodGet, "/api/user")
 	assert.NotNil(t, mi.node)

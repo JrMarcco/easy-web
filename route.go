@@ -25,7 +25,7 @@ func newRouteTree() *routeTree {
 	}
 }
 
-func (t *routeTree) addRoute(method string, path string, hdlFunc HandleFunc, mwFunc ...Middleware) {
+func (t *routeTree) addRoute(method string, path string, hdlFunc HandleFunc, mws ...Middleware) {
 	if path == "" {
 		panic("[easy_web] path is empty")
 	}
@@ -36,21 +36,22 @@ func (t *routeTree) addRoute(method string, path string, hdlFunc HandleFunc, mwF
 
 	root, ok := t.m[method]
 	if !ok {
-		root = &node{baseRoute: "", fullRoute: ""}
+		root = &node{}
 		t.m[method] = root
 	}
 
-	path = strings.Trim(path, "/")
-	if path == "" {
+	if path == "/" {
 		if root.handleFunc != nil {
 			panic(fmt.Sprintf("[easy_web] route %s already exists", path))
 		}
 
+		root.fullRoute = path
 		root.handleFunc = hdlFunc
+		root.middlewareChain = append(root.middlewareChain, mws...)
 		return
 	}
 
-	segments := strings.SplitSeq(path, "/")
+	segments := strings.SplitSeq(strings.Trim(path, "/"), "/")
 	for seg := range segments {
 		if seg == "" {
 			panic("[easy_web] path contains consecutive '/'")
@@ -63,8 +64,9 @@ func (t *routeTree) addRoute(method string, path string, hdlFunc HandleFunc, mwF
 		panic(fmt.Sprintf("[easy_web] route %s already exists", path))
 	}
 
+	root.fullRoute = strings.TrimRight(path, "/")
 	root.handleFunc = hdlFunc
-	root.middlewareChain = append(root.middlewareChain, mwFunc...)
+	root.middlewareChain = append(root.middlewareChain, mws...)
 }
 
 func (t *routeTree) getRoute(method string, path string) *matched {
@@ -118,10 +120,10 @@ func (t *routeTree) putMatchInfo(matched *matched) {
 }
 
 const (
-	static   = iota // static route node, e.g. /mall/order
-	wildcard        // wildcard route node, e.g. /mall/*
-	param           // param route node, e.g. /mall/order/:id
-	reg             // regular exp node, e.g. /mall/order/re:^\d+$
+	static   = iota // static route node ( e.g. /mall/order )
+	wildcard        // wildcard route node ( e.g. /mall/* )
+	param           // param route node ( e.g., /mall/order/:id )
+	reg             // regular exp node ( e.g., /mall/order/re:^\d+$ )
 )
 
 type nodeType int8
@@ -162,10 +164,9 @@ func (n *node) addChild(path string) *node {
 		return child
 	}
 
-	// create new node
+	// create a new node
 	newNode := &node{
 		baseRoute: path,
-		fullRoute: n.fullRoute + "/" + path,
 		typ:       static,
 	}
 	n.children[path] = newNode
@@ -181,7 +182,6 @@ func (n *node) addWildcardN() *node {
 		n.wildcardN = &node{
 			typ:       wildcard,
 			baseRoute: "*",
-			fullRoute: n.fullRoute + "/*",
 		}
 	}
 
@@ -203,7 +203,6 @@ func (n *node) addParamN(path string) *node {
 	n.paramN = &node{
 		typ:       param,
 		baseRoute: path,
-		fullRoute: n.fullRoute + "/" + path,
 	}
 	return n.paramN
 }
@@ -224,14 +223,13 @@ func (n *node) addRegexpN(path string) *node {
 	n.regexpN = &node{
 		typ:       reg,
 		baseRoute: path,
-		fullRoute: n.fullRoute + "/" + path,
 		re:        re,
 	}
 	return n.regexpN
 }
 
 func (n *node) getChild(path string) (*node, bool) {
-	// check regexp node first
+	// check the regexp node first
 	if n.regexpN != nil && n.regexpN.re.MatchString(path) {
 		return n.regexpN, true
 	}

@@ -3,6 +3,7 @@ package accesslog
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 
 	easyweb "github.com/JrMarcco/easy-web"
 )
@@ -43,7 +44,7 @@ func (b *MiddlewareBuilder) Build() easyweb.Middleware {
 func NewMiddlewareBuilder() *MiddlewareBuilder {
 	return &MiddlewareBuilder{
 		logFunc: func(msg string) {
-			fmt.Println(msg)
+			log.Println(msg)
 		},
 	}
 }

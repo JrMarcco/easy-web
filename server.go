@@ -2,7 +2,6 @@ package easyweb
 
 import (
 	"log"
-	"net"
 	"net/http"
 )
 
@@ -22,7 +21,7 @@ type Server interface {
 	http.Handler
 
 	Start() error
-	RouteRegister(method string, path string, hdl HandleFunc, mwFunc ...Middleware)
+	Route(method string, path string, hdl HandleFunc, mwFunc ...Middleware)
 }
 
 type ServerOpt func(*HttpServer)
@@ -46,7 +45,7 @@ func NewHttpServer(opts ...ServerOpt) *HttpServer {
 	return svr
 }
 
-func WithAddr(addr string) ServerOpt {
+func WithAddrOpt(addr string) ServerOpt {
 	return func(s *HttpServer) {
 		s.addr = addr
 	}
@@ -106,44 +105,11 @@ func (s *HttpServer) flushResp(ctx *Context) {
 }
 
 func (s *HttpServer) Start() error {
-	ln, err := net.Listen("tcp", s.addr)
-	if err != nil {
-		return err
-	}
-
-	return http.Serve(ln, s)
+	return http.ListenAndServe(s.addr, s)
 }
 
-func (s *HttpServer) RouteRegister(method string, path string, hdl HandleFunc, mwFunc ...Middleware) {
-	s.addRoute(method, path, hdl, mwFunc...)
-}
-
-func (s *HttpServer) Get(path string, hdl HandleFunc, mwFunc ...Middleware) {
-	s.addRoute(http.MethodGet, path, hdl, mwFunc...)
-}
-
-func (s *HttpServer) Post(path string, hdl HandleFunc, mwFunc ...Middleware) {
-	s.addRoute(http.MethodPost, path, hdl, mwFunc...)
-}
-
-func (s *HttpServer) Put(path string, hdl HandleFunc, mwFunc ...Middleware) {
-	s.addRoute(http.MethodPut, path, hdl, mwFunc...)
-}
-
-func (s *HttpServer) Patch(path string, hdl HandleFunc, mwFunc ...Middleware) {
-	s.addRoute(http.MethodPatch, path, hdl, mwFunc...)
-}
-
-func (s *HttpServer) Delete(path string, hdl HandleFunc, mwFunc ...Middleware) {
-	s.addRoute(http.MethodDelete, path, hdl, mwFunc...)
-}
-
-func (s *HttpServer) Head(path string, hdl HandleFunc, mwFunc ...Middleware) {
-	s.addRoute(http.MethodHead, path, hdl, mwFunc...)
-}
-
-func (s *HttpServer) Options(path string, hdl HandleFunc, mwFunc ...Middleware) {
-	s.addRoute(http.MethodOptions, path, hdl, mwFunc...)
+func (s *HttpServer) Route(method string, path string, hdl HandleFunc, mws ...Middleware) {
+	s.addRoute(method, path, hdl, mws...)
 }
 
 func (s *HttpServer) Group(path string) *RouteGroup {
