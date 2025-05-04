@@ -1,6 +1,10 @@
 package easyweb
 
 import (
+	"fmt"
+	lru "github.com/hashicorp/golang-lru"
+	"log"
+
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -93,16 +97,10 @@ func (f *FileDownloader) Handle() HandleFunc {
 		}
 
 		filename = filepath.Clean(filename)
-		path, err := filepath.Abs(filepath.Join(f.filePath, filename))
+		path, err := validateFileName(f.filePath, filename)
 		if err != nil {
 			ctx.StatusCode = http.StatusInternalServerError
 			ctx.Data = []byte("failed to download file: " + err.Error())
-			return
-		}
-
-		if !strings.Contains(path, f.filePath) {
-			ctx.StatusCode = http.StatusBadRequest
-			ctx.Data = []byte("invalid filename")
 			return
 		}
 
@@ -142,4 +140,186 @@ func NewFileDownloader(opts ...FileDownloaderOpt) *FileDownloader {
 		opt(fd)
 	}
 	return fd
+}
+
+type StaticResourceHandler struct {
+	fieldName       string
+	filePath        string
+	extContentTypes map[string]string
+	cache           *lru.Cache
+	maxCacheSize    int
+}
+
+type cacheItem struct {
+	asbPath     string
+	fileName    string
+	fileSize    int
+	contentType string
+	data        []byte
+}
+
+func (srh *StaticResourceHandler) Handle() HandleFunc {
+	return func(ctx *Context) {
+		fileName, err := ctx.PathParam(srh.fieldName).String()
+		if err != nil {
+			ctx.StatusCode = http.StatusInternalServerError
+			ctx.Data = []byte("failed to serve static resource: " + err.Error())
+			return
+		}
+		if fileName == "" {
+			ctx.StatusCode = http.StatusBadRequest
+			ctx.Data = []byte("filename is empty")
+		}
+
+		path, err := validateFileName(srh.filePath, fileName)
+		if err != nil {
+			ctx.StatusCode = http.StatusInternalServerError
+			ctx.Data = []byte("failed to serve static resource: " + err.Error())
+			return
+		}
+
+		if ci, ok := srh.getCachedItem(path); ok {
+			srh.writeResp(ctx, ci)
+			return
+		}
+
+		f, err := os.Open(path)
+		if err != nil {
+			ctx.StatusCode = http.StatusInternalServerError
+			ctx.Data = []byte("failed to serve static resource: " + err.Error())
+			return
+		}
+		defer func() {
+			_ = f.Close()
+		}()
+
+		ext := srh.getExt(fileName)
+		t, ok := srh.extContentTypes[ext]
+		if !ok {
+			ctx.StatusCode = http.StatusBadRequest
+			return
+		}
+
+		data, err := io.ReadAll(f)
+		if err != nil {
+			ctx.StatusCode = http.StatusInternalServerError
+			ctx.Data = []byte("failed to serve static resource: " + err.Error())
+		}
+
+		ci := &cacheItem{
+			asbPath:     path,
+			fileName:    fileName,
+			fileSize:    len(data),
+			contentType: t,
+			data:        data,
+		}
+
+		srh.cacheFile(ci)
+
+		srh.writeResp(ctx, ci)
+	}
+}
+
+func (srh *StaticResourceHandler) getExt(fileName string) string {
+	index := strings.LastIndex(fileName, ".")
+	if index == len(fileName)-1 {
+		return ""
+	}
+	return fileName[index+1:]
+}
+
+func (srh *StaticResourceHandler) getCachedItem(absPath string) (*cacheItem, bool) {
+	if srh.cache == nil {
+		return nil, false
+	}
+
+	if ci, ok := srh.cache.Get(absPath); ok {
+		return ci.(*cacheItem), true
+	}
+	return nil, false
+}
+
+func (srh *StaticResourceHandler) cacheFile(ci *cacheItem) {
+	if srh.cache == nil || srh.maxCacheSize <= 0 || ci.fileSize > srh.maxCacheSize {
+		return
+	}
+
+	srh.cache.Add(ci.asbPath, ci)
+}
+
+func (srh *StaticResourceHandler) writeResp(ctx *Context, ci *cacheItem) {
+	ctx.Resp.WriteHeader(http.StatusOK)
+	ctx.Resp.Header().Set("Content-Type", ci.contentType)
+	ctx.Resp.Header().Set("Content-Length", fmt.Sprintf("%d", ci.fileSize))
+	_, _ = ctx.Resp.Write(ci.data)
+}
+
+type StaticResourceHandlerOpt func(*StaticResourceHandler)
+
+func StaticResourceHandlerWithFieldName(fieldName string) StaticResourceHandlerOpt {
+	return func(srh *StaticResourceHandler) {
+		srh.fieldName = fieldName
+	}
+}
+
+func StaticResourceHandlerWithFilePath(filePath string) StaticResourceHandlerOpt {
+	return func(srh *StaticResourceHandler) {
+		srh.filePath = filePath
+	}
+}
+
+func StaticResourceHandlerWithExtContentTypes(extContentTypes map[string]string) StaticResourceHandlerOpt {
+	return func(srh *StaticResourceHandler) {
+		srh.extContentTypes = extContentTypes
+	}
+}
+
+func StaticResourceHandlerWithCache(maxCacheCnt, maxCacheSize int) StaticResourceHandlerOpt {
+	return func(srh *StaticResourceHandler) {
+		c, err := lru.New(maxCacheCnt)
+		if err != nil {
+			log.Println("failed to create cache: ", err)
+		}
+
+		srh.cache = c
+		srh.maxCacheSize = maxCacheSize
+	}
+}
+
+func NewStaticResourceHandler(opts ...StaticResourceHandlerOpt) *StaticResourceHandler {
+	srh := &StaticResourceHandler{
+		fieldName: "file",
+		filePath:  filepath.Join("testdata", "statics"),
+		extContentTypes: map[string]string{
+			"jpg":  "image/jpeg",
+			"jpeg": "image/jpeg",
+			"png":  "image/png",
+			"gif":  "image/gif",
+			"svg":  "image/svg+xml",
+			"css":  "text/css",
+			"js":   "application/javascript",
+		},
+	}
+
+	for _, opt := range opts {
+		opt(srh)
+	}
+
+	return srh
+}
+
+// validateFileName validate filename to prevent accessing a system file.
+// returns a file absolute path if the filename is validated.
+func validateFileName(resourcePath, filename string) (string, error) {
+	filename = filepath.Clean(filename)
+	path, err := filepath.Abs(filepath.Join(resourcePath, filename))
+	if err != nil {
+		return "", err
+	}
+
+	if !strings.Contains(path, resourcePath) {
+		return "", err
+	}
+
+	return path, nil
 }

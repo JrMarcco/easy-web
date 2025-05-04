@@ -59,3 +59,20 @@ func TestFileDownloader_Handle(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestStaticFileServer_Handle(t *testing.T) {
+	srv := NewHttpServer()
+
+	srh := NewStaticResourceHandler(
+		StaticResourceHandlerWithFieldName("file"),
+		StaticResourceHandlerWithFilePath("testdata/statics"),
+		StaticResourceHandlerWithCache(128, 1024*1024),
+	)
+
+	srv.Route(http.MethodGet, "/static/:file", srh.Handle())
+
+	err := srv.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
