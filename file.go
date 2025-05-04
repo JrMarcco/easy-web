@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type FileUploader struct {
@@ -79,8 +80,31 @@ type FileDownloader struct {
 
 func (f *FileDownloader) Handle() HandleFunc {
 	return func(ctx *Context) {
-		filename, _ := ctx.QueryParam(f.fieldName).String()
-		path := filepath.Join(f.filePath, filepath.Clean(filename))
+		filename, err := ctx.QueryParam(f.fieldName).String()
+		if err != nil {
+			ctx.StatusCode = http.StatusInternalServerError
+			ctx.Data = []byte("failed to download file: " + err.Error())
+			return
+		}
+		if filename == "" {
+			ctx.StatusCode = http.StatusBadRequest
+			ctx.Data = []byte("filename is empty")
+			return
+		}
+
+		filename = filepath.Clean(filename)
+		path, err := filepath.Abs(filepath.Join(f.filePath, filename))
+		if err != nil {
+			ctx.StatusCode = http.StatusInternalServerError
+			ctx.Data = []byte("failed to download file: " + err.Error())
+			return
+		}
+
+		if !strings.Contains(path, f.filePath) {
+			ctx.StatusCode = http.StatusBadRequest
+			ctx.Data = []byte("invalid filename")
+			return
+		}
 
 		header := ctx.Resp.Header()
 		header.Set("Content-Disposition", "attachment; filename="+filepath.Base(path))
