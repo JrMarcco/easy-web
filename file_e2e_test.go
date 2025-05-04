@@ -25,14 +25,37 @@ func TestFileUploader_Handle(t *testing.T) {
 		}
 	})
 
-	fu := FileUploader{
-		FileField: "file",
-		DstPathFunc: func(mph *multipart.FileHeader) string {
-			return filepath.Join("testdata", "upload", mph.Filename)
-		},
-	}
-
-	srv.Route(http.MethodPost, "/upload", fu.Handle())
+	srv.Route(
+		http.MethodPost,
+		"/upload",
+		NewFileUploader(
+			FileUploaderWithFieldName("file"),
+			FileUploaderWithDstPathFunc(func(mph *multipart.FileHeader) string {
+				return filepath.Join("testdata", "upload", mph.Filename)
+			}),
+		).Handle(),
+	)
 
 	err = srv.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestFileDownloader_Handle(t *testing.T) {
+	srv := NewHttpServer()
+
+	srv.Route(
+		http.MethodGet,
+		"/download",
+		NewFileDownloader(
+			FileDownloaderWithFilePath("testdata/upload"),
+			FileDownloaderWithFieldName("file"),
+		).Handle(),
+	)
+
+	err := srv.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
 }

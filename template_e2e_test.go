@@ -24,4 +24,7 @@ func TestGoTemplateEngine_Render(t *testing.T) {
 	})
 
 	err = srv.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
 }
