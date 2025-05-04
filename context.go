@@ -20,6 +20,8 @@ type Context struct {
 	pathParams   map[string]string
 	queryParams  map[string][]string
 
+	UserValues map[string]any
+
 	tplEngine TemplateEngine
 }
 

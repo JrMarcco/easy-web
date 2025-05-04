@@ -24,13 +24,25 @@ type Server interface {
 	Route(method string, path string, hdl HandleFunc, mwFunc ...Middleware)
 }
 
-type ServerOpt func(*HttpServer)
-
 type HttpServer struct {
 	*routeTree
 
 	addr      string
 	tplEngine TemplateEngine
+}
+
+type ServerOpt func(*HttpServer)
+
+func ServerWithAddrOpt(addr string) ServerOpt {
+	return func(s *HttpServer) {
+		s.addr = addr
+	}
+}
+
+func ServerWithTplEngineOpt(tplEngine TemplateEngine) ServerOpt {
+	return func(s *HttpServer) {
+		s.tplEngine = tplEngine
+	}
 }
 
 func NewHttpServer(opts ...ServerOpt) *HttpServer {
@@ -44,18 +56,6 @@ func NewHttpServer(opts ...ServerOpt) *HttpServer {
 	}
 
 	return svr
-}
-
-func ServerWithAddrOpt(addr string) ServerOpt {
-	return func(s *HttpServer) {
-		s.addr = addr
-	}
-}
-
-func ServerWithTplEngineOpt(tplEngine TemplateEngine) ServerOpt {
-	return func(s *HttpServer) {
-		s.tplEngine = tplEngine
-	}
 }
 
 func (s *HttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
