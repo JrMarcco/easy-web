@@ -68,7 +68,7 @@ func (r *RStore) Get(ctx context.Context, id string) (session.Session, error) {
 		return nil, err
 	}
 
-	if res < 0 {
+	if res <= 0 {
 		return nil, errSessionNotFound
 	}
 
@@ -127,7 +127,7 @@ func (r *RSession) Set(ctx context.Context, key string, value any) error {
 		return err
 	}
 
-	if res < 0 {
+	if res <= 0 {
 		return errSessionNotFound
 	}
 	return nil
