@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>文件上传</title>
+    <style>
+        body {
+            background: #f5f7fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            height: 100vh;
+            justify-content: center;
+        }
+        .upload-container {
+            background: #fff;
+            padding: 40px 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 24px rgba(60,60,60,0.12);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h2 {
+            color: #3a7afe;
+            margin-bottom: 18px;
+        }
+        label {
+            font-size: 1.1em;
+            color: #333;
+            margin-bottom: 9px;
+        }
+        input[type="file"] {
+            margin: 12px 0 18px 0;
+        }
+        input[type="submit"] {
+            background: linear-gradient(90deg, #3a7afe 0%, #79cbca 100%);
+            color: #fff;
+            border: none;
+            padding: 10px 30px;
+            font-size: 1em;
+            border-radius: 7px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        input[type="submit"]:hover {
+            background: linear-gradient(90deg, #5793fa 0%, #61d8de 100%);
+        }
+    </style>
+</head>
+<body>
+<div class="upload-container">
+    <h2>上传文件</h2>
+    <form action="/upload" method="post" enctype="multipart/form-data">
+        <label for="file">选择文件：</label>
+        <input type="file" id="file" name="file">
+        <input type="submit" value="上传">
+    </form>
+</div>
+</body>
+</html>

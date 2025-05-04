@@ -102,7 +102,7 @@ func (c *Context) OkJson(data any) error {
 
 func (c *Context) Render(tplName string, data any) error {
 	var err error
-	c.Data, err = c.tplEngine.Render(c.Req.Context(), tplName, data)
+	c.Data, err = c.tplEngine.Render(tplName, data)
 	if err != nil {
 		c.StatusCode = http.StatusInternalServerError
 	}

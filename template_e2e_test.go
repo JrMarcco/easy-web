@@ -11,7 +11,7 @@ import (
 )
 
 func TestGoTemplateEngine_Render(t *testing.T) {
-	tpl, err := template.ParseGlob("testdata/*.gohtml")
+	tpl, err := template.ParseGlob("testdata/templates/*.gohtml")
 	require.NoError(t, err)
 
 	srv := NewHttpServer(ServerWithTplEngineOpt(&GoTemplateEngine{T: tpl}))
