@@ -1,13 +1,14 @@
 package redis
 
 import (
+	"log"
+	"net/http"
+	"testing"
+
 	easyweb "github.com/JrMarcco/easy-web"
 	"github.com/JrMarcco/easy-web/session"
 	"github.com/JrMarcco/easy-web/session/cookie"
 	"github.com/redis/go-redis/v9"
-	"log"
-	"net/http"
-	"testing"
 )
 
 func TestSession_Redis(t *testing.T) {

@@ -1,8 +1,9 @@
 package recovery
 
 import (
-	easyweb "github.com/JrMarcco/easy-web"
 	"log"
+
+	easyweb "github.com/JrMarcco/easy-web"
 )
 
 // MiddlewareBuilder should be the most outer in a middleware chain.

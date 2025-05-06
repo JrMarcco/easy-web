@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/JrMarcco/easy-web/session"
-	"github.com/patrickmn/go-cache"
 	"sync"
 	"time"
+
+	"github.com/JrMarcco/easy-web/session"
+	"github.com/patrickmn/go-cache"
 )
 
 var (

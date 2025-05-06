@@ -1,12 +1,13 @@
 package memory
 
 import (
-	easyweb "github.com/JrMarcco/easy-web"
-	"github.com/JrMarcco/easy-web/session"
-	"github.com/JrMarcco/easy-web/session/cookie"
 	"log"
 	"net/http"
 	"testing"
+
+	easyweb "github.com/JrMarcco/easy-web"
+	"github.com/JrMarcco/easy-web/session"
+	"github.com/JrMarcco/easy-web/session/cookie"
 )
 
 func TestSession_Mem(t *testing.T) {

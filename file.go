@@ -2,8 +2,9 @@ package easyweb
 
 import (
 	"fmt"
-	lru "github.com/hashicorp/golang-lru"
 	"log"
+
+	lru "github.com/hashicorp/golang-lru"
 
 	"io"
 	"mime/multipart"

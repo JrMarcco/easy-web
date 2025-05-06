@@ -3,13 +3,14 @@
 package easyweb
 
 import (
-	"github.com/stretchr/testify/require"
 	"html/template"
 	"log"
 	"mime/multipart"
 	"net/http"
 	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestFileUploader_Handle(t *testing.T) {

@@ -3,12 +3,13 @@
 package prometheus
 
 import (
-	easyweb "github.com/JrMarcco/easy-web"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"math/rand"
 	"net/http"
 	"testing"
 	"time"
+
+	easyweb "github.com/JrMarcco/easy-web"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func TestMiddlewareBuilder_Build(t *testing.T) {

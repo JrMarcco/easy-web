@@ -1,10 +1,11 @@
 package prometheus
 
 import (
-	easyweb "github.com/JrMarcco/easy-web"
-	"github.com/prometheus/client_golang/prometheus"
 	"strconv"
 	"time"
+
+	easyweb "github.com/JrMarcco/easy-web"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 type MiddlewareBuilder struct {
