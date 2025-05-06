@@ -74,12 +74,11 @@ func (s *HttpServer) serve(ctx *Context) {
 	matched := s.getRoute(ctx.Req.Method, ctx.Req.URL.Path)
 	defer s.putMatchInfo(matched)
 
-	if matched.node == nil {
+	if matched.node == nil || matched.node.handleFunc == nil {
 		_ = ctx.RespBytes(http.StatusNotFound, []byte("Not Found"))
+		s.flushResp(ctx)
 		return
 	}
-
-	ctx.MatchedRoute = matched.node.fullRoute
 
 	handleFunc := matched.node.handleFunc
 	// middleware execution
@@ -98,6 +97,7 @@ func (s *HttpServer) serve(ctx *Context) {
 		}
 	}(handleFunc)
 
+	ctx.MatchedRoute = matched.node.fullRoute
 	ctx.pathParams = matched.params
 	handleFunc(ctx)
 }
