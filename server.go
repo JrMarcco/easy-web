@@ -5,8 +5,6 @@ import (
 	"net/http"
 )
 
-var _ Server = (*HttpServer)(nil)
-
 // HandleFunc is a handler function for a route
 type HandleFunc func(ctx *Context)
 
@@ -16,6 +14,8 @@ type Middleware func(next HandleFunc) HandleFunc
 
 // MiddlewareChain is a chain of middleware functions
 type MiddlewareChain []Middleware
+
+var _ Server = (*HttpServer)(nil)
 
 type Server interface {
 	http.Handler
